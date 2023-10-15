@@ -1,0 +1,26 @@
+{
+  "name": "bpl",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "start:file": "node dist/file.js",
+    "watch": "nodemon -w ./src -e ts -x \"npm run build && npm run start\"",
+    "watch:file": "nodemon -w ./src -e ts -x \"npm run build && npm run start:file\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "readline": "^1.3.0",
+    "readline-sync": "^1.4.10",
+    "remove": "^0.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.6",
+    "@types/readline-sync": "^1.4.5"
+  }
+}
