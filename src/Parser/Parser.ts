@@ -1,4 +1,5 @@
 import ParserError from "../Errors/ParserError";
+import Lexer from "../Lexer/Lexer";
 import Token from "../Lexer/Token";
 import TokenType from "../Lexer/TokenType";
 import {
@@ -19,6 +20,8 @@ import {
   NumberLiteralExpr,
   ReturnStmt,
   StringLiteralExpr,
+  TemplateLiteralExpr,
+  TerinaryExpr,
   UnaryExpr,
   VariableDeclarationExpr,
 } from "./Expr";
@@ -39,25 +42,42 @@ class Parser {
   static parseExpr(): Expr {
     const expr = this.parseAssignment();
 
-    if (this.peek().type === TokenType.SEMICOLON_TOKEN)
-      this.consume(TokenType.SEMICOLON_TOKEN);
+    this.optional(TokenType.SEMICOLON_TOKEN);
 
     return expr;
   }
 
   static parseAssignment(): Expr {
-    let expr = this.parseLogical();
+    const expr = this.parseTerinary();
 
-    if (this.peek().type === TokenType.EQUAL_TOKEN) {
-      const equals = this.consume(TokenType.EQUAL_TOKEN);
-      const value = this.parseAssignment();
+    if (this.optional(TokenType.ASSIGNMENT_TOKEN)) {
+      const value = this.parseTerinary();
 
-      if (expr instanceof AssignmentExpr) {
-        const name = expr.name;
-        return new AssignmentExpr(name, value);
+      if (expr instanceof IdentifierExpr) {
+        return new AssignmentExpr(
+          new Token(TokenType.IDENTIFIER_TOKEN, expr.value),
+          value
+        );
       }
 
-      throw new ParserError(`Invalid assignment target`, equals);
+      throw new ParserError(
+        "Invalid assignment target",
+        expr as unknown as Token
+      );
+    }
+
+    return expr;
+  }
+
+  static parseTerinary(): Expr {
+    let expr = this.parseLogical();
+
+    if (this.optional(TokenType.QUESTION_MARK_TOKEN)) {
+      const thenBranch = this.parseExpr();
+      this.consume(TokenType.COLON_TOKEN);
+      const elseBranch = this.parseExpr();
+
+      expr = new TerinaryExpr(expr, thenBranch, elseBranch);
     }
 
     return expr;
@@ -116,7 +136,8 @@ class Parser {
 
     while (
       this.peek().type === TokenType.STAR_TOKEN ||
-      this.peek().type === TokenType.SLASH_TOKEN
+      this.peek().type === TokenType.SLASH_TOKEN ||
+      this.peek().type === TokenType.MODULO_TOKEN
     ) {
       const operator = this.consume(this.peek().type);
       const right = this.parseUnary();
@@ -127,7 +148,7 @@ class Parser {
   }
 
   static parseUnary(): Expr {
-    let expr = this.parsePrimary();
+    const expr = this.parsePrimary();
 
     if (
       this.peek().type === TokenType.INCREMENT_TOKEN ||
@@ -142,19 +163,29 @@ class Parser {
 
   static parsePrimary(): Expr {
     const expr = this.peek();
-    if (expr.type === TokenType.NUMBER_LITERAL_TOKEN)
+    if (expr.type === TokenType.NUMBER_LITERAL_TOKEN) {
       return new NumberLiteralExpr(
         Number(this.consume(TokenType.NUMBER_LITERAL_TOKEN).value)
       );
+    }
 
-    if (expr.type === TokenType.STRING_LITERAL_TOKEN)
+    if (expr.type === TokenType.STRING_LITERAL_TOKEN) {
       return new StringLiteralExpr(
         this.consume(TokenType.STRING_LITERAL_TOKEN).value
       );
+    }
 
-    if (expr.type === TokenType.OPEN_PAREN_TOKEN) return this.parseGrouping();
+    if (expr.type === TokenType.TEMPLATE_LITERAL_TOKEN) {
+      return this.parseTemplateLiteral();
+    }
 
-    if (expr.type === TokenType.OPEN_CURRLY_TOKEN) return this.parseBlock();
+    if (expr.type === TokenType.OPEN_PAREN_TOKEN) {
+      return this.parseGrouping();
+    }
+
+    if (expr.type === TokenType.OPEN_CURRLY_TOKEN) {
+      return this.parseBlock();
+    }
 
     if (expr.type === TokenType.EOF_TOKEN) {
       this.consume(TokenType.EOF_TOKEN);
@@ -163,14 +194,20 @@ class Parser {
 
     if (expr.type === TokenType.IDENTIFIER_TOKEN) {
       const name = this.peek();
-      if (name.value === "if") return this.parseIf();
-      if (name.value === "var" || name.value === "const")
+      if (name.value === "if") {
+        return this.parseIf();
+      }
+      if (name.value === "var" || name.value === "const") {
         return this.parseVariableDeclaration();
-      if (name.value === "for") return this.parseFor();
-      if (name.value === "true" || name.value === "false")
+      }
+      if (name.value === "for") {
+        return this.parseFor();
+      }
+      if (name.value === "true" || name.value === "false") {
         return new BooleanLiteralExpr(
           this.consume(TokenType.IDENTIFIER_TOKEN).value === "true"
         );
+      }
       if (name.value === "null") {
         this.consume(TokenType.IDENTIFIER_TOKEN);
         return new NullLiteralExpr();
@@ -191,7 +228,7 @@ class Parser {
         return new BreakStmt();
       }
 
-      if(name.value === 'func') {
+      if (name.value === "func") {
         return this.parseFunctionDeclaration();
       }
 
@@ -207,18 +244,68 @@ class Parser {
     );
   }
 
+  static parseTemplateLiteral(): TemplateLiteralExpr {
+    const expr = this.consume(TokenType.TEMPLATE_LITERAL_TOKEN);
+    const value = expr.value;
+
+    const exprs: Expr[] = [];
+
+    if (value.includes("${")) {
+      const parts = value.split("${");
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (part === "") continue;
+        if (part.trim() === "") {
+          exprs.push(new StringLiteralExpr(part));
+          continue;
+        }
+        if (i === 0) {
+          exprs.push(new StringLiteralExpr(part));
+          continue;
+        }
+        const end = part.trimStart().indexOf("}");
+        if (end === -1) {
+          exprs.push(new StringLiteralExpr(`\${${part}`));
+          continue;
+        }
+        if (end === 0) {
+          throw new ParserError("Empty expression", expr);
+        }
+
+        const literalExpr = part.slice(0, end);
+        const tokens: Token[] = [];
+        Lexer.tokenize(literalExpr).forEach((token) => tokens.push(token));
+
+        const currentTokens = this.tokens;
+        this.tokens = tokens;
+
+        while (this.tokens.length) {
+          exprs.push(this.parseExpr());
+        }
+
+        this.tokens = currentTokens;
+
+        exprs.push(new StringLiteralExpr(part.slice(end + 1)));
+      }
+      const filteredExprs = exprs.filter(
+        (expr) => !(expr instanceof EmptyExpr)
+      );
+      return new TemplateLiteralExpr(filteredExprs);
+    }
+    return new TemplateLiteralExpr([new StringLiteralExpr(value)]);
+  }
+
   static parseFunctionDeclaration(): FunctionDeclarationExpr {
     this.consume(TokenType.IDENTIFIER_TOKEN);
     const name = this.consume(TokenType.IDENTIFIER_TOKEN);
     this.consume(TokenType.OPEN_PAREN_TOKEN);
     const params: [Token, string][] = [];
-    while(this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
+    while (this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
       const name = this.consume(TokenType.IDENTIFIER_TOKEN);
       this.consume(TokenType.COLON_TOKEN);
       const type = this.consume(TokenType.IDENTIFIER_TOKEN);
       params.push([name, type.value]);
-      if (this.peek().type === TokenType.COMMA_TOKEN)
-        this.consume(TokenType.COMMA_TOKEN);
+      this.optional(TokenType.COMMA_TOKEN);
     }
 
     this.consume(TokenType.CLOSE_PAREN_TOKEN);
@@ -237,8 +324,7 @@ class Parser {
 
     while (this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
       args.push(this.parseExpr());
-      if (this.peek().type === TokenType.COMMA_TOKEN)
-        this.consume(TokenType.COMMA_TOKEN);
+      this.optional(TokenType.COMMA_TOKEN);
     }
 
     this.consume(TokenType.CLOSE_PAREN_TOKEN);
@@ -250,11 +336,9 @@ class Parser {
     this.consume(TokenType.IDENTIFIER_TOKEN);
     this.consume(TokenType.OPEN_PAREN_TOKEN);
     const initializer = this.parseExpr();
-    if (this.peek().type === TokenType.SEMICOLON_TOKEN)
-      this.consume(TokenType.SEMICOLON_TOKEN);
+    this.optional(TokenType.SEMICOLON_TOKEN);
     const condition = this.parseExpr();
-    if (this.peek().type === TokenType.SEMICOLON_TOKEN)
-      this.consume(TokenType.SEMICOLON_TOKEN);
+    this.optional(TokenType.SEMICOLON_TOKEN);
     const increment = this.parseExpr();
     this.consume(TokenType.CLOSE_PAREN_TOKEN);
     const body = this.parseBlock();
@@ -268,7 +352,7 @@ class Parser {
     this.consume(TokenType.COLON_TOKEN, "Missing type of variable");
     const typeOf = this.consume(TokenType.IDENTIFIER_TOKEN);
 
-    if (this.peek().type === TokenType.SEMICOLON_TOKEN) {
+    if (this.optional(TokenType.SEMICOLON_TOKEN)) {
       if (type.value === "const")
         throw new ParserError("const variables must be initialized", type);
       return new VariableDeclarationExpr(name, typeOf, null);
@@ -298,14 +382,11 @@ class Parser {
       this.peek().value === "else"
     ) {
       this.consume(TokenType.IDENTIFIER_TOKEN);
-      if (
+      elseBranch =
         this.peek().type === TokenType.IDENTIFIER_TOKEN &&
         this.peek().value === "if"
-      ) {
-        elseBranch = this.parseIf();
-      } else {
-        elseBranch = this.parseBlock();
-      }
+          ? this.parseIf()
+          : this.parseBlock();
     }
 
     return new IfStmt(condition, thenBranch, elseBranch);
@@ -338,6 +419,13 @@ class Parser {
         this.tokens[this.tokens.length - 1]?.line ?? 0
       );
     return this.tokens[index];
+  }
+
+  static optional(type: TokenType): Token | null {
+    if (this.peek().type === type) {
+      return this.tokens.shift() as Token;
+    }
+    return null;
   }
 
   static consume(type: TokenType, message?: string): Token {

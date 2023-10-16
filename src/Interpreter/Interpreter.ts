@@ -6,6 +6,7 @@ import ReturnStatement from "../Errors/ReturnStatement";
 import Token from "../Lexer/Token";
 import TokenType from "../Lexer/TokenType";
 import {
+  AssignmentExpr,
   BinaryExpr,
   BlockStmt,
   BooleanLiteralExpr,
@@ -22,20 +23,23 @@ import {
   NumberLiteralExpr,
   ReturnStmt,
   StringLiteralExpr,
+  TemplateLiteralExpr,
+  TerinaryExpr,
   UnaryExpr,
   VariableDeclarationExpr,
 } from "../Parser/Expr";
 import ExprType from "../Parser/ExprType";
-import PrimitiveTypes from "./PrimitiveTypes";
 import ValueType from "./ValueType";
 import {
   BooleanValue,
   CustomValue,
   FunctionValue,
+  NativeFunctionValue,
   NullValue,
   NumberValue,
   RuntimeValue,
   StringValue,
+  VoidValue,
 } from "./Values";
 
 class Interpreter {
@@ -44,14 +48,16 @@ class Interpreter {
   constructor(env?: Environment) {
     this.environment = env || new Environment();
   }
-  public evaluate(stmt: Expr | Expr[]): void {
+  public evaluate(stmt: Expr | Expr[]): RuntimeValue | RuntimeValue[] {
     if (Array.isArray(stmt)) {
+      const outputs = [];
       for (const expr of stmt) {
-        this.evaluateExpr(expr);
+        outputs.push(this.evaluateExpr(expr));
         // if (value.type !== ValueType.VOID) console.log(value);
       }
+      return outputs;
     } else {
-      this.evaluateExpr(stmt);
+      return this.evaluateExpr(stmt);
       // console.log(value);
     }
   }
@@ -66,7 +72,7 @@ class Interpreter {
     } else if (expr instanceof NullLiteralExpr) {
       return this.evaluateNullLiteral(expr);
     } else if (expr instanceof EmptyExpr) {
-      return new RuntimeValue(ValueType.VOID);
+      return new VoidValue();
     } else if (expr instanceof BinaryExpr) {
       return this.evaluateBinaryExpr(expr);
     } else if (expr instanceof BlockStmt) {
@@ -89,14 +95,71 @@ class Interpreter {
       return this.evaluateForStmt(expr);
     } else if (expr instanceof UnaryExpr) {
       return this.evaluateUnaryExpr(expr);
-    } else if(expr instanceof FunctionDeclarationExpr) {
+    } else if (expr instanceof FunctionDeclarationExpr) {
       return this.evaluateFunctionDeclarationExpr(expr);
+    } else if (expr instanceof TerinaryExpr) {
+      return this.evaluateTerinaryExpr(expr);
+    } else if (expr instanceof AssignmentExpr) {
+      return this.evaluateAssignmentExpr(expr);
+    } else if (expr instanceof TemplateLiteralExpr) {
+      return this.evaluateTemplateLiteralExpr(expr);
     }
 
-    throw new Error(`Invalid expression: ${expr.constructor.name}`);
+    throw new InterpreterError(
+      `Invalid expression: ${expr.constructor.name}`,
+      expr
+    );
   }
 
-  private evaluateFunctionDeclarationExpr(expr: FunctionDeclarationExpr): RuntimeValue {
+  private evaluateTemplateLiteralExpr(expr: TemplateLiteralExpr): RuntimeValue {
+    const parts = expr.value;
+    const parsed: StringValue[] = parts.map(
+      (part) => this.evaluateExpr(part) as StringValue
+    );
+    let result = "";
+    for (let i = 0; i < parsed.length; i++) {
+      const value = parsed[i].value;
+      const parsedValue =
+        value === undefined || value === null ? "" : value.toString();
+      result += parsedValue;
+    }
+
+    return new StringValue(result);
+  }
+
+  private evaluateAssignmentExpr(expr: AssignmentExpr): RuntimeValue {
+    const value = this.evaluateExpr(expr.value);
+    const variableName = expr.name.value;
+
+    const variable = this.environment.getVariable(variableName);
+
+    if (value.type !== variable[1]) {
+      throw new InterpreterError(
+        `Invalid assignment type: ${value.type} expected ${variable[1]}`,
+        expr
+      );
+    }
+
+    this.environment.setVariable(variableName, value);
+    return value;
+  }
+
+  private evaluateTerinaryExpr(expr: TerinaryExpr): RuntimeValue {
+    const condition = this.evaluateExpr(expr.condition) as BooleanValue;
+    if (condition.type !== ValueType.BOOL) {
+      throw new InterpreterError(
+        `Invalid if condition type: ${condition.type}`,
+        expr
+      );
+    }
+    return this.evaluateExpr(
+      condition.value ? expr.thenBranch : expr.elseBranch
+    );
+  }
+
+  private evaluateFunctionDeclarationExpr(
+    expr: FunctionDeclarationExpr
+  ): RuntimeValue {
     const func = new FunctionValue(
       expr.name,
       expr.params,
@@ -105,8 +168,7 @@ class Interpreter {
     );
 
     this.environment.defineFunction(expr.name.value, func);
-    console.log('function defined', expr.name.value)
-    return new RuntimeValue(ValueType.VOID);
+    return new VoidValue();
   }
   private evaluateUnaryExpr(expr: UnaryExpr): RuntimeValue {
     const right = this.evaluateExpr(expr.right);
@@ -131,12 +193,9 @@ class Interpreter {
         const variableValue = this.environment.getVariable(variableName);
         this.environment.setVariable(
           variableName,
-          new NumberValue(
-            (variableValue[0] as NumberValue).value + 1,
-            variableValue[1]
-          )
+          new NumberValue((variableValue[0] as NumberValue).value + 1)
         );
-        return new NumberValue((right as NumberValue).value + 1, right.type);
+        return new NumberValue((right as NumberValue).value + 1);
       }
       case TokenType.DECREMENT_TOKEN: {
         if (right.type !== ValueType.NUMBER) {
@@ -158,12 +217,9 @@ class Interpreter {
         const variableValue = this.environment.getVariable(variableName);
         this.environment.setVariable(
           variableName,
-          new NumberValue(
-            (variableValue[0] as NumberValue).value - 1,
-            variableValue[1]
-          )
+          new NumberValue((variableValue[0] as NumberValue).value - 1)
         );
-        return new NumberValue((right as NumberValue).value - 1, right.type);
+        return new NumberValue((right as NumberValue).value - 1);
       }
       case TokenType.MINUS_TOKEN:
         if (right.type !== ValueType.NUMBER) {
@@ -172,9 +228,9 @@ class Interpreter {
             expr
           );
         }
-        return new NumberValue(-(right as NumberValue).value, right.type);
+        return new NumberValue(-(right as NumberValue).value);
       case TokenType.BANG_TOKEN:
-        if (right.type !== ValueType.BOOLEAN) {
+        if (right.type !== ValueType.BOOL) {
           throw new InterpreterError(
             `Invalid unary expression: ${expr.operator.value} ${right.type}`,
             expr
@@ -219,45 +275,52 @@ class Interpreter {
         interpreter.evaluateExpr(stmt.increment);
       }
     }
-    return new RuntimeValue(ValueType.VOID);
+    return new VoidValue();
   }
   private evaluateFunctionCallExpr(expr: FunctionCallExpr): RuntimeValue {
     try {
       const env = new Environment(this.environment);
       const interpreter = new Interpreter(env);
-      const func = this.environment.getFunction(expr.callee.value);
+      const func = this.environment.getFunction(expr.callee.value) as
+        | FunctionValue
+        | NativeFunctionValue;
+
       expr.args.forEach((arg, index) => {
         const value = this.evaluateExpr(arg);
-        if (value.type.toLowerCase() !== func.params[index][1]) {
+        if (
+          func.params[index][1] !== ValueType.ANY &&
+          value.type !== func.params[index][1]
+        ) {
           throw new InterpreterError(
             `Invalid argument type: ${value.type} expected ${func.params[index][1]}`,
             arg
           );
         }
-        env.defineVariable(
-          func.params[index][0].value,
-          value,
-          false
-        );
+        env.defineVariable(func.params[index][0].value, value, false);
       });
 
-      interpreter.evaluate(func.body);
+      if (func.isNative)
+        return (func as NativeFunctionValue).body(
+          expr.args.map((arg) => this.evaluateExpr(arg))
+        );
+
+      interpreter.evaluate((func as FunctionValue).body);
     } catch (err) {
       if (err instanceof ReturnStatement) {
         return err.value;
       }
       throw err;
     }
-    return new RuntimeValue(ValueType.VOID);
+    return new VoidValue();
   }
   private evaluateIdentifierExpr(expr: IdentifierExpr): RuntimeValue {
     const value = this.environment.getVariable(expr.value);
     switch (value[1]) {
       case ValueType.NUMBER:
-        return new NumberValue((value[0] as NumberValue).value, value[1]);
+        return new NumberValue((value[0] as NumberValue).value);
       case ValueType.STRING:
         return new StringValue((value[0] as StringValue).value);
-      case ValueType.BOOLEAN:
+      case ValueType.BOOL:
         return new BooleanValue((value[0] as BooleanValue).value);
       case ValueType.NULL:
         return new NullValue();
@@ -270,12 +333,13 @@ class Interpreter {
   private evaluateVariableDeclarationExpr(
     expr: VariableDeclarationExpr
   ): RuntimeValue {
-    let value;
-    if (expr.value) {
-      value = this.evaluateExpr(expr.value);
-    } else {
-      value = new NullValue();
-    }
+    const value = expr.value ? this.evaluateExpr(expr.value) : new NullValue();
+
+    if (value.type !== expr.typeOf.value)
+      throw new InterpreterError(
+        `Invalid variable type: ${value.type} expected ${expr.typeOf.value}`,
+        expr
+      );
 
     this.environment.defineVariable(expr.name.value, value, expr.isConst);
     return value;
@@ -292,7 +356,7 @@ class Interpreter {
   }
   private evaluateIfStmt(stmt: IfStmt): RuntimeValue {
     const condition = this.evaluateExpr(stmt.condition) as BooleanValue;
-    if (condition.type !== ValueType.BOOLEAN) {
+    if (condition.type !== ValueType.BOOL) {
       throw new InterpreterError(
         `Invalid if condition type: ${condition.type}`,
         stmt
@@ -307,35 +371,35 @@ class Interpreter {
         return this.evaluateBlockStmt(stmt.elseBranch as BlockStmt);
       }
     }
-    return new RuntimeValue(ValueType.VOID);
+    return new VoidValue();
   }
   private evaluateBlockStmt(stmt: BlockStmt): RuntimeValue {
     const interpreter = new Interpreter(new Environment(this.environment));
     for (const expr of stmt.statements) {
       interpreter.evaluateExpr(expr);
     }
-    return new RuntimeValue(ValueType.VOID);
+    return new VoidValue();
   }
   private evaluateBinaryNumberExpr(
-    operator: Token,
+    expr: BinaryExpr,
     left: NumberValue,
     right: NumberValue
   ): NumberValue | BooleanValue {
-    switch (operator.type) {
+    switch (expr.operator.type) {
       case TokenType.PLUS_TOKEN:
-        return new NumberValue(left.value + right.value, PrimitiveTypes.INT);
+        return new NumberValue(left.value + right.value);
       case TokenType.MINUS_TOKEN:
-        return new NumberValue(left.value - right.value, PrimitiveTypes.INT);
+        return new NumberValue(left.value - right.value);
       case TokenType.STAR_TOKEN:
-        return new NumberValue(left.value * right.value, PrimitiveTypes.INT);
+        return new NumberValue(left.value * right.value);
       case TokenType.SLASH_TOKEN:
         if (right.value === 0)
           throw new InterpreterError(`Division by zero`, null);
-        return new NumberValue(left.value / right.value, PrimitiveTypes.INT);
+        return new NumberValue(left.value / right.value);
       case TokenType.MODULO_TOKEN:
         if (right.value === 0)
           throw new InterpreterError(`Modulo by zero`, null);
-        return new NumberValue(left.value % right.value, PrimitiveTypes.INT);
+        return new NumberValue(left.value % right.value);
       case TokenType.EQUAL_TOKEN:
         return new BooleanValue(left.value === right.value);
       // case TokenType.BANG_EQUAL_TOKEN:
@@ -349,7 +413,10 @@ class Interpreter {
       case TokenType.LESS_OR_EQUAL_TOKEN:
         return new BooleanValue(left.value <= right.value);
       default:
-        throw new Error(`Invalid binary number expression: ${operator.type}`);
+        throw new InterpreterError(
+          `Invalid binary number expression: ${expr.operator.type}`,
+          expr
+        );
     }
   }
   private evaluateBinaryStringExpr(
@@ -373,7 +440,10 @@ class Interpreter {
       case TokenType.LESS_OR_EQUAL_TOKEN:
         return new BooleanValue(left.value <= right.value);
       default:
-        throw new Error(`Invalid binary string expression: ${operator.type}`);
+        throw new InterpreterError(
+          `Invalid binary string expression: ${operator.type}`,
+          null
+        );
     }
   }
   private evaluateBinaryBooleanExpr(
@@ -391,7 +461,10 @@ class Interpreter {
       case TokenType.OR_TOKEN:
         return new BooleanValue(left.value || right.value);
       default:
-        throw new Error(`Invalid binary boolean expression: ${operator.type}`);
+        throw new InterpreterError(
+          `Invalid binary boolean expression: ${operator.type}`,
+          null
+        );
     }
   }
   private evaluateBinaryExpr(expr: BinaryExpr): RuntimeValue {
@@ -400,7 +473,7 @@ class Interpreter {
 
     if (left.type === ValueType.NUMBER && right.type === ValueType.NUMBER) {
       return this.evaluateBinaryNumberExpr(
-        expr.operator,
+        expr,
         left as NumberValue,
         right as NumberValue
       );
@@ -413,10 +486,7 @@ class Interpreter {
         left as StringValue,
         right as StringValue
       );
-    } else if (
-      left.type === ValueType.BOOLEAN &&
-      right.type === ValueType.BOOLEAN
-    ) {
+    } else if (left.type === ValueType.BOOL && right.type === ValueType.BOOL) {
       return this.evaluateBinaryBooleanExpr(
         expr.operator,
         left as BooleanValue,
@@ -440,12 +510,9 @@ class Interpreter {
   }
   private evaluateNumberLiteral(expr: NumberLiteralExpr): NumberValue {
     if (expr.value.toString().includes(".")) {
-      return new NumberValue(
-        parseFloat(expr.value.toString()),
-        PrimitiveTypes.FLOAT
-      );
+      return new NumberValue(parseFloat(expr.value.toString()));
     }
-    return new NumberValue(parseInt(expr.value.toString()), PrimitiveTypes.INT);
+    return new NumberValue(parseInt(expr.value.toString()));
   }
 }
 

@@ -1,14 +1,26 @@
 import EnvironmentError from "../Errors/EnvironmentError";
 import PrimitiveTypes from "../Interpreter/PrimitiveTypes";
 import ValueType from "../Interpreter/ValueType";
-import { CustomValue, FunctionValue, RuntimeValue } from "../Interpreter/Values";
+import {
+  CustomValue,
+  FunctionValue,
+  NativeFunctionValue,
+  RuntimeValue,
+} from "../Interpreter/Values";
+import STLService from "../services/stl.service";
 
 class Environment {
-  constructor(public parent?: Environment) {}
+  constructor(public parent?: Environment) {
+    if (!parent) {
+      STLService.populateWithSTLVariables(this);
+      STLService.populateWithSTLTypes(this);
+      STLService.populateWithSTLFunctions(this);
+    }
+  }
 
   private variables: Map<string, [RuntimeValue, string, boolean]> = new Map();
   private consts: Set<string> = new Set();
-  private types: Map<string, any> = new Map();
+  private types: Map<string, [ValueType, any]> = new Map();
   private functions: Map<string, any> = new Map();
 
   private allTogethers: Set<string> = new Set();
@@ -18,12 +30,13 @@ class Environment {
     value: RuntimeValue,
     isConst: boolean = false
   ): void {
-    if (this.allTogethers.has(name))
+    if (this.allTogethers.has(name) || this.isDefinedType(name))
       throw new EnvironmentError(`Name ${name} is already defined!`);
-    if (Object.values(PrimitiveTypes).includes(value.type as PrimitiveTypes))
+    if (Object.values(PrimitiveTypes).includes(name as PrimitiveTypes)) {
       throw new EnvironmentError(
         `Variable ${name} is already defined as a primitive type!`
       );
+    }
     if (value.type === ValueType.CUSTOM) {
       const type = (value as CustomValue).typeOf;
       if (!this.isDefinedType(type))
@@ -39,15 +52,29 @@ class Environment {
     this.allTogethers.add(name);
   }
 
-  public defineType(name: string, value: any): void {
+  public defineType(
+    name: string,
+    value: ValueType,
+    extraProperties?: Record<string, ValueType>
+  ): void {
+    if (this.parent)
+      throw new EnvironmentError("Types can be defined only in global scope!");
+    if (this.isDefined(name))
+      throw new EnvironmentError(`Name ${name} is already taken!`);
+
+    this.types.set(name, [value, extraProperties]);
+    this.allTogethers.add(name);
+  }
+
+  public defineNativeFunction(name: string, value: NativeFunctionValue): void {
     if (this.allTogethers.has(name))
       throw new EnvironmentError(`Name ${name} is already defined!`);
-    if (Object.values(PrimitiveTypes).includes(value))
+    if (Object.values(PrimitiveTypes).includes(name as PrimitiveTypes))
       throw new EnvironmentError(
-        `Type ${name} is already defined as a primitive type!`
+        `Function ${name} is already defined as a primitive type!`
       );
 
-    this.types.set(name, value);
+    this.functions.set(name, value);
     this.allTogethers.add(name);
   }
 
@@ -98,7 +125,7 @@ class Environment {
     return this.types.get(name) || this.parent?.getType(name);
   }
 
-  public getFunction(name: string): any {
+  public getFunction(name: string): RuntimeValue {
     if (!this.isDefinedFunction(name))
       throw new EnvironmentError(`Function ${name} is not defined!`);
     return this.functions.get(name) || this.parent?.getFunction(name);
@@ -120,10 +147,11 @@ class Environment {
     if (this.isConst(name))
       throw new EnvironmentError(`Variable ${name} is a const!`);
 
-    if (Object.values(PrimitiveTypes).includes(value.type as PrimitiveTypes))
+    if (Object.values(PrimitiveTypes).includes(name as PrimitiveTypes)) {
       throw new EnvironmentError(
         `Variable ${name} is already defined as a primitive type!`
       );
+    }
     if (value.type === ValueType.CUSTOM) {
       const type = (value as CustomValue).typeOf;
       if (!this.isDefinedType(type))

@@ -17,6 +17,12 @@ export class StringLiteralExpr extends Expr {
   }
 }
 
+export class TemplateLiteralExpr extends Expr {
+  constructor(public value: Expr[]) {
+    super(ExprType.TEMPLATE_LITERAL_TOKEN);
+  }
+}
+
 export class NumberLiteralExpr extends Expr {
   constructor(public value: number) {
     super(ExprType.NUMBER_LITERAL_EXPR);
@@ -112,6 +118,16 @@ export class IfStmt extends Stmt {
     public elseBranch: BlockStmt | IfStmt | null
   ) {
     super(ExprType.IF_STMT);
+  }
+}
+
+export class TerinaryExpr extends Expr {
+  constructor(
+    public condition: Expr,
+    public thenBranch: Expr,
+    public elseBranch: Expr
+  ) {
+    super(ExprType.TERINARY_EXPR);
   }
 }
 

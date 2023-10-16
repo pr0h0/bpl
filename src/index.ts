@@ -9,36 +9,52 @@ import Parser from "./Parser/Parser";
 
 export default function flow(
   content: string,
-  cliInterpreter?: Interpreter
+  cliInterpreter: Interpreter | undefined = undefined,
+  debug: { showTokens: boolean; showExpr: boolean; showValues: boolean } = {
+    showTokens: false,
+    showExpr: false,
+    showValues: false,
+  }
 ): void {
   let tokens: Token[] = [];
   try {
     tokens = Lexer.tokenize(content);
 
-    // for (let token of tokens) {
-    // console.log(token);
-    // }
+    if (debug.showTokens) {
+      for (const token of tokens) {
+        console.dir(token, { depth: null });
+      }
+    }
   } catch (error: unknown) {
     console.error((error as Error | LexerError).toString());
+    return;
   }
 
   let ast: Expr[] | null = null;
 
   try {
     ast = Parser.parse(tokens);
-    // for (let stmt of ast) {
-    //   console.dir(stmt, { depth: null });
-    // }
+    if (debug.showExpr) {
+      for (const stmt of ast) {
+        console.dir(stmt, { depth: null });
+      }
+    }
   } catch (error: unknown) {
     console.error((error as Error | ParserError).toString());
+    return;
   }
 
   try {
     if (ast) {
       const interpreter = cliInterpreter || new Interpreter();
-      interpreter.evaluate(ast);
+      const value = interpreter.evaluate(ast);
+
+      if (debug.showValues) {
+        console.dir(value, { depth: null });
+      }
     }
   } catch (e) {
     console.error(((e as Error) || InterpreterError).toString());
+    return;
   }
 }

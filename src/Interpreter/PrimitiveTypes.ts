@@ -1,10 +1,9 @@
 enum PrimitiveTypes {
-  INT = "int",
-  FLOAT = "float",
-  STRING = "string",
-  BOOL = "bool",
-  CHAR = "char",
-  VOID = "void",
+  NUMBER = "NUMBER",
+  STRING = "STRING",
+  BOOL = "BOOL",
+  ANY = "ANY",
+  VOID = "VOID",
 }
 
 export default PrimitiveTypes;

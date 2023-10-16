@@ -1,13 +1,18 @@
 enum ValueType {
   STRING = "STRING",
   NUMBER = "NUMBER",
-  BOOLEAN = "BOOLEAN",
+  BOOL = "BOOL",
   NULL = "NULL",
-  FUNCTION = "FUNCTION",
+
+  FUNC = "FUNC",
+  NATIVE_FUNCTION = "NATIVE_FUNCTION",
+
   ARRAY = "ARRAY",
   OBJECT = "OBJECT",
   CUSTOM = "CUSTOM",
+
   VOID = "VOID",
+  ANY = "ANY",
 }
 
 export default ValueType;

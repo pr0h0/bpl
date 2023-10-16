@@ -6,21 +6,38 @@ export class RuntimeValue {
   constructor(public type: string) {}
 }
 
+export class AnyValue extends RuntimeValue {
+  constructor(public value: RuntimeValue) {
+    super(ValueType.ANY);
+  }
+}
+
+export class VoidValue extends RuntimeValue {
+  constructor() {
+    super(ValueType.VOID);
+  }
+}
 export class StringValue extends RuntimeValue {
   constructor(public value: string) {
     super(ValueType.STRING);
+    this.value = this.value.replace(/\\n/g, "\n");
+    this.value = this.value.replace(/\\t/g, "\t");
+    this.value = this.value.replace(/\\r/g, "\r");
+    this.value = this.value.replace(/\\'/g, "'");
+    this.value = this.value.replace(/\\"/g, '"');
+    this.value = this.value.replace(/\\\\/g, "\\");
   }
 }
 
 export class NumberValue extends RuntimeValue {
-  constructor(public value: number, public typeOf: string) {
+  constructor(public value: number) {
     super(ValueType.NUMBER);
   }
 }
 
 export class BooleanValue extends RuntimeValue {
   constructor(public value: boolean) {
-    super(ValueType.BOOLEAN);
+    super(ValueType.BOOL);
   }
 }
 
@@ -35,9 +52,22 @@ export class FunctionValue extends RuntimeValue {
     public name: Token,
     public params: [Token, string][],
     public body: BlockStmt,
-    public typeOf: string
+    public typeOf: string,
+    public isNative: boolean = false
   ) {
-    super(ValueType.FUNCTION);
+    super(ValueType.FUNC);
+  }
+}
+
+export class NativeFunctionValue extends RuntimeValue {
+  constructor(
+    public name: Token,
+    public params: [Token, string][],
+    public body: (args: RuntimeValue[]) => RuntimeValue,
+    public typeOf: string,
+    public isNative: boolean = true
+  ) {
+    super(ValueType.NATIVE_FUNCTION);
   }
 }
 

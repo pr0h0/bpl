@@ -57,8 +57,6 @@ class Lexer {
     if (token === "?")
       return new Token(TokenType.QUESTION_MARK_TOKEN, token, this.line);
     if (token === "@") return new Token(TokenType.AT_TOKEN, token, this.line);
-    if (token === "`")
-      return new Token(TokenType.BACKTICK_TOKEN, token, this.line);
 
     if (token === "!") return this.parseBangToken(token);
     if (token === "+") return this.parsePlusToken(token);
@@ -73,6 +71,8 @@ class Lexer {
     if (token === "|") return this.parseOrToken(token);
 
     if ("'\"".includes(token)) return this.parseStringLiteralToken(token);
+    if (token === "`") return this.parseTemplateLiteralToken(token);
+
     if ("0123456789".includes(token))
       return this.parseNumberLiteralToken(token);
 
@@ -81,9 +81,28 @@ class Lexer {
     throw new LexerError(`Unexpected token '${token}'`, this.line);
   }
 
+  static parseTemplateLiteralToken(token: string): Token | null {
+    let openCount = 1;
+    let str = "";
+    while (this.tokens.length) {
+      if (this.seek() === token) {
+        openCount--;
+        if (openCount === 0) break;
+      }
+      if (this.seek() === "\n") this.line++;
+      str += this.consume();
+    }
+
+    if (openCount !== 0)
+      throw new LexerError("Unterminated template literal", this.line);
+
+    this.consume();
+    return new Token(TokenType.TEMPLATE_LITERAL_TOKEN, str, this.line);
+  }
+
   static parseIdentifierToken(token: string): Token | null {
-    var identifier = token;
-    while (/[a-zA-Z0-9_]/.test(this.seek())) {
+    let identifier = token;
+    while (/[a-zA-Z0-9_]/.test(this.seek() || "")) {
       identifier += this.consume();
     }
 
@@ -107,7 +126,7 @@ class Lexer {
     while (
       this.tokens.length &&
       (this.seek() !== token ||
-        (this.seek() === token && str.length && str[str.length - 1] === "\\"))
+        (this.seek() === token && str.length && str.endsWith("\\")))
     ) {
       if (this.seek() === "\n")
         throw new LexerError("Unterminated string literal", this.line);

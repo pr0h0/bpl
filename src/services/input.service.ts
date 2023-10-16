@@ -1,7 +1,11 @@
 import { readFileSync } from "fs";
 import readline from "readline";
+import readlineSync from "readline-sync";
 
 class InputService {
+  static getUserInputSync(prompt: string): string {
+    return readlineSync.question(prompt);
+  }
   static getUserInput(prompt = "") {
     const cl = readline.createInterface({
       input: process.stdin,
