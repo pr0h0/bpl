@@ -1,4 +1,5 @@
 Planned features:
+- [ ] Refactor code
 - [ ] Add failsafe on loops
 - [ ] Add support for arrays
 - [ ] Upgrade current STL
