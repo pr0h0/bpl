@@ -6,6 +6,7 @@ import {
   FunctionValue,
   NativeFunctionValue,
   RuntimeValue,
+  TypeValue,
 } from "../Interpreter/Values";
 import STLService from "../services/stl.service";
 
@@ -20,7 +21,7 @@ class Environment {
 
   private variables: Map<string, [RuntimeValue, string, boolean]> = new Map();
   private consts: Set<string> = new Set();
-  private types: Map<string, [ValueType, any]> = new Map();
+  private types: Map<string, TypeValue> = new Map();
   private functions: Map<string, any> = new Map();
 
   private allTogethers: Set<string> = new Set();
@@ -62,7 +63,7 @@ class Environment {
     if (this.isDefined(name))
       throw new EnvironmentError(`Name ${name} is already taken!`);
 
-    this.types.set(name, [value, extraProperties]);
+    this.types.set(name, new TypeValue(value, extraProperties));
     this.allTogethers.add(name);
   }
 
@@ -125,7 +126,7 @@ class Environment {
     return this.types.get(name) || this.parent?.getType(name);
   }
 
-  public getFunction(name: string): RuntimeValue {
+  public getFunction(name: string): FunctionValue | NativeFunctionValue {
     if (!this.isDefinedFunction(name))
       throw new EnvironmentError(`Function ${name} is not defined!`);
     return this.functions.get(name) || this.parent?.getFunction(name);

@@ -1,12 +1,15 @@
 import Environment from "../Environment/Environment";
-import ValueType from "../Interpreter/ValueType";
+import InterpreterError from "../Errors/InterpreterError";
 import {
+  BooleanValue,
   NativeFunctionValue,
+  NullValue,
   NumberValue,
   RuntimeValue,
   StringValue,
   VoidValue,
 } from "../Interpreter/Values";
+import ValueType from "../Interpreter/ValueType";
 import Token from "../Lexer/Token";
 import TokenType from "../Lexer/TokenType";
 import InputService from "./input.service";
@@ -33,9 +36,10 @@ class STLService {
         new Token(TokenType.IDENTIFIER_TOKEN, "input", 0),
         [[new Token(TokenType.IDENTIFIER_TOKEN, "prompt", 0), ValueType.ANY]],
         (args: RuntimeValue[] = []) => {
-          return new StringValue(
-            InputService.getUserInputSync((args[0] as StringValue)?.value) || ""
-          );
+          const userInput = InputService.getUserInputSync((args[0] as StringValue)?.value) || ""
+          const value = new StringValue(userInput);
+          console.log({ userInput, value });
+          return value;
         },
         ValueType.STRING,
         true
@@ -50,6 +54,97 @@ class STLService {
         () => new NumberValue(Date.now()),
         ValueType.NUMBER,
         true
+      )
+    );
+
+        environment.defineNativeFunction(
+          'evalJS',
+          new NativeFunctionValue(
+            new Token(TokenType.IDENTIFIER_TOKEN,'evalJS'),
+            [
+              [new Token(TokenType.IDENTIFIER_TOKEN, 'code', 0), ValueType.STRING],
+            ],
+            (args: RuntimeValue[]) => {
+              const code = (args[0] as StringValue).value;
+              console.log({code})
+              return new StringValue(eval(code));
+            },
+            ValueType.ANY,
+            true
+          )
+        )
+
+    environment.defineNativeFunction(
+      "convert",
+      new NativeFunctionValue(
+        new Token(TokenType.IDENTIFIER_TOKEN, "convert", 0),
+        [
+          [new Token(TokenType.IDENTIFIER_TOKEN, "value", 0), ValueType.ANY],
+          [new Token(TokenType.IDENTIFIER_TOKEN, "type", 0), ValueType.ANY],
+        ],
+        (args: RuntimeValue[]) => {
+          const value = args[0] as StringValue;
+          const fromType = value.type;
+          const toType = (args[1] as StringValue).value;
+
+          if (fromType === toType) return value;
+          if (fromType === ValueType.NULL || toType === ValueType.NULL)
+            return new NullValue();
+
+          // string to
+          if (
+            [ValueType.ANY, ValueType.STRING].includes(fromType as ValueType) &&
+            toType === ValueType.NUMBER
+          ) {
+            const newValue = Number(value.value);
+            if (isNaN(newValue))
+              throw new InterpreterError(
+                `Cannot convert ${value.value} to number`,
+                null
+              );
+            return new NumberValue(Number(value.value));
+          }
+          if (
+            [ValueType.ANY, ValueType.STRING].includes(fromType as ValueType) &&
+            toType === ValueType.BOOL
+          ) {
+            return new BooleanValue(Boolean(value.value));
+          }
+
+          // number to
+          if (
+            [ValueType.ANY, ValueType.NUMBER].includes(fromType as ValueType) &&
+            toType === ValueType.STRING
+          ) {
+            return new StringValue(value.value.toString());
+          }
+          if (
+            [ValueType.ANY, ValueType.NUMBER].includes(fromType as ValueType) &&
+            toType === ValueType.BOOL
+          ) {
+            return new BooleanValue(Boolean(value.value));
+          }
+
+          // bool to
+          if (
+            [ValueType.ANY, ValueType.BOOL].includes(fromType as ValueType) &&
+            toType === ValueType.STRING
+          ) {
+            return new StringValue(value.value ? "true" : "false");
+          }
+          if (
+            [ValueType.ANY, ValueType.BOOL].includes(fromType as ValueType) &&
+            toType === ValueType.NUMBER
+          ) {
+            return new NumberValue(Number(value.value));
+          }
+
+          throw new InterpreterError(
+            `Cannot convert ${fromType} to ${toType}`,
+            null
+          );
+        },
+        ValueType.ANY
       )
     );
   }

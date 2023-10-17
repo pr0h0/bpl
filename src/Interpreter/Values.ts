@@ -20,7 +20,7 @@ export class VoidValue extends RuntimeValue {
 export class StringValue extends RuntimeValue {
   constructor(public value: string) {
     super(ValueType.STRING);
-    this.value = this.value.replace(/\\n/g, "\n");
+    this.value = this.value?.toString().replace(/\\n/g, "\n");
     this.value = this.value.replace(/\\t/g, "\t");
     this.value = this.value.replace(/\\r/g, "\r");
     this.value = this.value.replace(/\\'/g, "'");
@@ -88,5 +88,11 @@ export class ObjectValue extends RuntimeValue {
 export class CustomValue extends RuntimeValue {
   constructor(public value: RuntimeValue, public typeOf: string) {
     super(ValueType.CUSTOM);
+  }
+}
+
+export class TypeValue extends RuntimeValue {
+  constructor(public value: ValueType, public valueDefinition: any) {
+    super(ValueType.TYPE);
   }
 }

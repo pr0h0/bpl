@@ -131,9 +131,23 @@ export class TerinaryExpr extends Expr {
   }
 }
 
-export class WhileStmt extends Stmt {
-  constructor(public condition: Expr, public body: Stmt) {
+export class WhileUntilStmt extends Stmt {
+  constructor(
+    public override type: ExprType,
+    public condition: Expr,
+    public body: Stmt
+  ) {
     super(ExprType.WHILE_STMT);
+  }
+}
+
+export class DoWhileUntilStmt extends Stmt {
+  constructor(
+    public override type: ExprType,
+    public condition: Expr,
+    public body: Stmt
+  ) {
+    super(ExprType.DO_WHILE_STMT);
   }
 }
 

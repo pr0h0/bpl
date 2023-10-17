@@ -9,6 +9,7 @@ import {
   BooleanLiteralExpr,
   BreakStmt,
   ContinueStmt,
+  DoWhileUntilStmt,
   EmptyExpr,
   Expr,
   ForStmt,
@@ -24,7 +25,9 @@ import {
   TerinaryExpr,
   UnaryExpr,
   VariableDeclarationExpr,
+  WhileUntilStmt,
 } from "./Expr";
+import ExprType from "./ExprType";
 
 class Parser {
   static tokens: Token[];
@@ -103,6 +106,7 @@ class Parser {
 
     while (
       this.peek().type === TokenType.EQUAL_TOKEN ||
+      this.peek().type === TokenType.NOT_EQUAL_TOKEN ||
       this.peek().type === TokenType.GREATER_THEN_TOKEN ||
       this.peek().type === TokenType.GREATER_OR_EQUAL_TOKEN ||
       this.peek().type === TokenType.LESS_THEN_TOKEN ||
@@ -203,6 +207,12 @@ class Parser {
       if (name.value === "for") {
         return this.parseFor();
       }
+      if (name.value === "while" || name.value === "until") {
+        return this.parseWhileUntil();
+      }
+      if (name.value === "do") {
+        return this.parseDoWhileUntil();
+      }
       if (name.value === "true" || name.value === "false") {
         return new BooleanLiteralExpr(
           this.consume(TokenType.IDENTIFIER_TOKEN).value === "true"
@@ -242,6 +252,33 @@ class Parser {
       `Expected a primary expression but got ${expr.type}`,
       expr
     );
+  }
+
+  static parseWhileUntil(): WhileUntilStmt {
+    const type = this.consume(TokenType.IDENTIFIER_TOKEN);
+    this.consume(TokenType.OPEN_PAREN_TOKEN);
+    const condition = this.parseExpr();
+    this.consume(TokenType.CLOSE_PAREN_TOKEN);
+    const body = this.parseBlock();
+
+    const exprType =
+      type.value === "until" ? ExprType.UNTIL_STMT : ExprType.WHILE_STMT;
+
+    return new WhileUntilStmt(exprType, condition, body);
+  }
+
+  static parseDoWhileUntil(): DoWhileUntilStmt {
+    this.consume(TokenType.IDENTIFIER_TOKEN);
+    const body = this.parseBlock();
+    const type = this.consume(TokenType.IDENTIFIER_TOKEN);
+    this.consume(TokenType.OPEN_PAREN_TOKEN);
+    const condition = this.parseExpr();
+    this.consume(TokenType.CLOSE_PAREN_TOKEN);
+
+    const exprType =
+      type.value === "until" ? ExprType.DO_UNTIL_STMT : ExprType.DO_WHILE_STMT;
+
+    return new DoWhileUntilStmt(exprType, condition, body);
   }
 
   static parseTemplateLiteral(): TemplateLiteralExpr {
@@ -351,12 +388,6 @@ class Parser {
     const name = this.consume(TokenType.IDENTIFIER_TOKEN);
     this.consume(TokenType.COLON_TOKEN, "Missing type of variable");
     const typeOf = this.consume(TokenType.IDENTIFIER_TOKEN);
-
-    if (this.optional(TokenType.SEMICOLON_TOKEN)) {
-      if (type.value === "const")
-        throw new ParserError("const variables must be initialized", type);
-      return new VariableDeclarationExpr(name, typeOf, null);
-    }
 
     this.consume(TokenType.ASSIGNMENT_TOKEN);
     const value = this.parseExpr();
