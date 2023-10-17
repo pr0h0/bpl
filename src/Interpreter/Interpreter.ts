@@ -249,9 +249,8 @@ class Interpreter {
     if (stmt.initializer) {
       interpreter.evaluateExpr(stmt.initializer);
     }
-    let count = 0;
+
     while (true) {
-      if (count++ > 1000) throw new InterpreterError("Infinite loop", stmt);
       if (stmt.condition) {
         const condition = interpreter.evaluateExpr(
           stmt.condition

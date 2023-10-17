@@ -2,9 +2,9 @@ import flow from ".";
 import InputService from "./services/input.service";
 
 function main() {
-  console.log('Welcome to the BPL: "Best Programing Language"');
+  console.log('Welcome to the BPL: "Best Programming Language"');
 
-  let file = "./test.bpl",
+  let file = "./examples/test.bpl",
     content;
   const args = process.argv.slice(2);
   if (args.length > 0) {
