@@ -1,17 +1,17 @@
-import { Expr } from "../Parser/Expr";
+import { Expr } from '../Parser/Expr';
 
 class InterpreterError extends Error {
-  constructor(message: string, expr: Expr | null) {
-    super(message);
-    this.name = InterpreterError.name;
-    this.expr = expr;
-  }
+    constructor(message: string, expr: Expr | null) {
+        super(message);
+        this.name = InterpreterError.name;
+        this.expr = expr;
+    }
 
-  public expr: Expr | null;
+    public expr: Expr | null;
 
-  public override toString(): string {
-    return `Interpreter:: ${this.message} [${this.expr?.type}]`;
-  }
+    public override toString(): string {
+        return `Interpreter:: ${this.message} [${this.expr?.type}]`;
+    }
 }
 
 export default InterpreterError;

@@ -1,7 +1,7 @@
 class ContinueStatement extends Error {
-  constructor() {
-    super("Invalid continue statement");
-  }
+    constructor(message?: string) {
+        super(message || 'Invalid continue statement');
+    }
 }
 
 export default ContinueStatement;

@@ -1,3 +1,9 @@
+/**
+    Fibonacci Sequence example in BPL
+    Here we use recursion to calculate the Fibonacci Sequence
+    Using for loop to print the first 10 numbers we call fib(i) and print the result
+**/
+
 func fib(n: NUMBER): NUMBER {
     if (n <= 1) {
         return n;

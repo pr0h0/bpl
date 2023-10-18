@@ -1,7 +1,7 @@
 class BreakStatement extends Error {
-  constructor() {
-    super("Invalid break statement");
-  }
+    constructor(message?: string) {
+        super(message || 'Invalid break statement');
+    }
 }
 
 export default BreakStatement;
