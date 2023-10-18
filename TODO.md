@@ -1,7 +1,5 @@
 Planned features:
 - [ ] Refactor code
-- [ ] Improve docs and add examples
-- [ ] Improve error messages
 - [ ] Add a way to pass function as a argument
 - [ ] Add a way to return function from a function
 - [ ] Upgrade operators between types
@@ -19,6 +17,8 @@ Planned features:
 
 Done features:
 - [x] Add failsafe on loops
+- [x] Improve docs and add examples
+- [x] Improve error messages
 
 Rejected features:
 - [x] Add Pair type
