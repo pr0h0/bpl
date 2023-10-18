@@ -13,6 +13,7 @@ enum ValueType {
 
   VOID = "VOID",
   ANY = "ANY",
+  TYPE = "TYPE",
 }
 
 export default ValueType;

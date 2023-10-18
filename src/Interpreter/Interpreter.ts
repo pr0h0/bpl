@@ -1,10 +1,3 @@
-import Environment from "../Environment/Environment";
-import BreakStatement from "../Errors/BreakStatement";
-import ContinueStatement from "../Errors/ContinueStatement";
-import InterpreterError from "../Errors/InterpreterError";
-import ReturnStatement from "../Errors/ReturnStatement";
-import Token from "../Lexer/Token";
-import TokenType from "../Lexer/TokenType";
 import {
   AssignmentExpr,
   BinaryExpr,
@@ -12,6 +5,7 @@ import {
   BooleanLiteralExpr,
   BreakStmt,
   ContinueStmt,
+  DoWhileUntilStmt,
   EmptyExpr,
   Expr,
   ForStmt,
@@ -24,12 +18,11 @@ import {
   ReturnStmt,
   StringLiteralExpr,
   TemplateLiteralExpr,
-  TerinaryExpr,
+  TernaryExpr,
   UnaryExpr,
   VariableDeclarationExpr,
+  WhileUntilStmt,
 } from "../Parser/Expr";
-import ExprType from "../Parser/ExprType";
-import ValueType from "./ValueType";
 import {
   BooleanValue,
   CustomValue,
@@ -39,8 +32,19 @@ import {
   NumberValue,
   RuntimeValue,
   StringValue,
+  TypeValue,
   VoidValue,
 } from "./Values";
+
+import BreakStatement from "../Errors/BreakStatement";
+import ContinueStatement from "../Errors/ContinueStatement";
+import Environment from "../Environment/Environment";
+import ExprType from "../Parser/ExprType";
+import InterpreterError from "../Errors/InterpreterError";
+import ReturnStatement from "../Errors/ReturnStatement";
+import Token from "../Lexer/Token";
+import TokenType from "../Lexer/TokenType";
+import ValueType from "./ValueType";
 
 class Interpreter {
   private environment: Environment;
@@ -53,12 +57,10 @@ class Interpreter {
       const outputs = [];
       for (const expr of stmt) {
         outputs.push(this.evaluateExpr(expr));
-        // if (value.type !== ValueType.VOID) console.log(value);
       }
       return outputs;
     } else {
       return this.evaluateExpr(stmt);
-      // console.log(value);
     }
   }
 
@@ -97,18 +99,90 @@ class Interpreter {
       return this.evaluateUnaryExpr(expr);
     } else if (expr instanceof FunctionDeclarationExpr) {
       return this.evaluateFunctionDeclarationExpr(expr);
-    } else if (expr instanceof TerinaryExpr) {
-      return this.evaluateTerinaryExpr(expr);
+    } else if (expr instanceof TernaryExpr) {
+      return this.evaluateTernaryExpr(expr);
     } else if (expr instanceof AssignmentExpr) {
       return this.evaluateAssignmentExpr(expr);
     } else if (expr instanceof TemplateLiteralExpr) {
       return this.evaluateTemplateLiteralExpr(expr);
+    } else if (expr instanceof WhileUntilStmt) {
+      return this.evaluateWhileUntilStmt(expr);
+    } else if (expr instanceof DoWhileUntilStmt) {
+      return this.evaluateDoWhileUntilStmt(expr);
     }
 
     throw new InterpreterError(
       `Invalid expression: ${expr.constructor.name}`,
       expr
     );
+  }
+
+  private evaluateWhileUntilStmt(stmt: WhileUntilStmt): RuntimeValue {
+    const interpreter = new Interpreter(new Environment(this.environment));
+    if (stmt.type === ExprType.WHILE_STMT) {
+      while ((this.evaluateExpr(stmt.condition) as BooleanValue).value) {
+        try {
+          interpreter.evaluateExpr(stmt.body);
+        } catch (err) {
+          if (err instanceof BreakStatement) {
+            break;
+          } else if (err instanceof ContinueStatement) {
+            continue;
+          }
+          throw err;
+        }
+      }
+    } else if (stmt.type === ExprType.UNTIL_STMT) {
+      while (!(this.evaluateExpr(stmt.condition) as BooleanValue).value) {
+        try {
+          interpreter.evaluateExpr(stmt.body);
+        } catch (err) {
+          if (err instanceof BreakStatement) {
+            break;
+          } else if (err instanceof ContinueStatement) {
+            continue;
+          }
+          throw err;
+        }
+      }
+    }
+    return new VoidValue();
+  }
+
+  private evaluateDoWhileUntilStmt(stmt: DoWhileUntilStmt): RuntimeValue {
+    const interpreter = new Interpreter(new Environment(this.environment));
+    if (stmt.type === ExprType.DO_WHILE_STMT) {
+      do {
+        try {
+          interpreter.evaluate(stmt.body);
+        } catch (err) {
+          if (err instanceof BreakStatement) {
+            break;
+          } else if (err instanceof ContinueStatement) {
+            continue;
+          }
+          throw err;
+        }
+      } while (
+        (interpreter.evaluateExpr(stmt.condition) as BooleanValue).value
+      );
+    } else if (stmt.type === ExprType.DO_UNTIL_STMT) {
+      do {
+        try {
+          interpreter.evaluate(stmt.body);
+        } catch (err) {
+          if (err instanceof BreakStatement) {
+            break;
+          } else if (err instanceof ContinueStatement) {
+            continue;
+          }
+          throw err;
+        }
+      } while (
+        !(interpreter.evaluateExpr(stmt.condition) as BooleanValue).value
+      );
+    }
+    return new VoidValue();
   }
 
   private evaluateTemplateLiteralExpr(expr: TemplateLiteralExpr): RuntimeValue {
@@ -144,7 +218,7 @@ class Interpreter {
     return value;
   }
 
-  private evaluateTerinaryExpr(expr: TerinaryExpr): RuntimeValue {
+  private evaluateTernaryExpr(expr: TernaryExpr): RuntimeValue {
     const condition = this.evaluateExpr(expr.condition) as BooleanValue;
     if (condition.type !== ValueType.BOOL) {
       throw new InterpreterError(
@@ -313,20 +387,49 @@ class Interpreter {
     return new VoidValue();
   }
   private evaluateIdentifierExpr(expr: IdentifierExpr): RuntimeValue {
-    const value = this.environment.getVariable(expr.value);
-    switch (value[1]) {
-      case ValueType.NUMBER:
-        return new NumberValue((value[0] as NumberValue).value);
-      case ValueType.STRING:
-        return new StringValue((value[0] as StringValue).value);
-      case ValueType.BOOL:
-        return new BooleanValue((value[0] as BooleanValue).value);
-      case ValueType.NULL:
-        return new NullValue();
-      case ValueType.CUSTOM:
-        return new CustomValue(value[0], (value[0] as CustomValue).typeOf);
-      default:
-        throw new InterpreterError(`Invalid value type: ${value[1]}`, expr);
+    let variableValue: [RuntimeValue, string, boolean] | null = null;
+    let functionValue: FunctionValue | NativeFunctionValue | null = null;
+    let typeValue: TypeValue | null = null;
+
+    let flag = "";
+    if (this.environment.isDefinedVariable(expr.value)) {
+      variableValue = this.environment.getVariable(expr.value);
+      flag = "variable";
+    } else if (this.environment.isDefinedFunction(expr.value)) {
+      functionValue = this.environment.getFunction(expr.value);
+      flag = "function";
+    } else if (this.environment.isDefinedType(expr.value)) {
+      typeValue = this.environment.getType(expr.value);
+      flag = "type";
+    }
+
+    if (flag === "variable" && variableValue !== null) {
+      switch (variableValue[1]) {
+        case ValueType.NUMBER:
+          return new NumberValue((variableValue[0] as NumberValue).value);
+        case ValueType.STRING:
+          return new StringValue((variableValue[0] as StringValue).value);
+        case ValueType.BOOL:
+          return new BooleanValue((variableValue[0] as BooleanValue).value);
+        case ValueType.NULL:
+          return new NullValue();
+        case ValueType.CUSTOM:
+          return new CustomValue(
+            variableValue[0],
+            (variableValue[0] as CustomValue).typeOf
+          );
+        default:
+          throw new InterpreterError(
+            `Invalid value type: ${variableValue[1]}`,
+            expr
+          );
+      }
+    } else if (flag === "function" && functionValue !== null) {
+      return functionValue as FunctionValue | NativeFunctionValue;
+    } else if (flag === "type" && typeValue !== null) {
+      return typeValue;
+    } else {
+      throw this.environment.getVariable(expr.value);
     }
   }
   private evaluateVariableDeclarationExpr(

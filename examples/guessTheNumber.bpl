@@ -1,25 +1,27 @@
-func getMiddle(n:NUMBER):NUMBER {
-    return n / 2
-}
+var number: NUMBER = time() % 98 + 1; // 1 - 99
 
-const n: NUMBER = time() % 98 + 1;
-var inp :STRING= '0';
-var lower:NUMBER = 0;
-var upper:NUMBER = 100;
+var lower: NUMBER = 1;
+var upper: NUMBER = 100;
 
-for(1;1;1) {
-    inp = input(`Enter your guess (${lower}, ${upper})`);
-    print(`${inp} ${n}`);
-    if (inp == n) {
-        print("You guessed it!");
-        break;
-    } else if (inp < n) {
-        print("Too low!");
-        lower = inp;
-    } else {
-        print("Too high!");
-        upper = inp;
-    }
-    print(`The middle is ${getMiddle(lower + upper)}`);
-}
+var tryCount: NUMBER = 0;
+
+var inputValue: NUMBER = 0;
+
+do {
+  var suggestion: NUMBER = convert(evalJS(`Math.floor(${(lower + upper) / 2})`), NUMBER);
+  inputValue = convert(input(`Guess a number, (suggestion: ${suggestion}) `), NUMBER);
+
+  tryCount++;
+
+  if(inputValue < number) {
+    print("Too low!");
+    lower = inputValue < lower ? lower : inputValue + 1;
+  } else if(inputValue > number) {
+    print("Too high!");
+    upper = upper > inputValue ? inputValue - 1 : upper;
+  } else {
+    print(`Correct! You guessed it in ${tryCount} tries!`);
+    break;
+  }
+} until(inputValue == number)
 
