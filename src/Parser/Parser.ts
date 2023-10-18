@@ -346,11 +346,11 @@ class Parser {
     static parseFor(): ForStmt {
         this.consume(TokenType.IDENTIFIER_TOKEN);
         this.consume(TokenType.OPEN_PAREN_TOKEN, 'Missing ( after for');
-        const initializer = this.parseExpr();
+        const initializer = this.peek().type === TokenType.SEMICOLON_TOKEN ? null : this.parseExpr();
         this.optional(TokenType.SEMICOLON_TOKEN);
-        const condition = this.parseExpr();
+        const condition = this.peek().type === TokenType.SEMICOLON_TOKEN ? null : this.parseExpr();
         this.optional(TokenType.SEMICOLON_TOKEN);
-        const increment = this.parseExpr();
+        const increment = this.peek().type === TokenType.CLOSE_PAREN_TOKEN ? null : this.parseExpr();
         this.consume(TokenType.CLOSE_PAREN_TOKEN, 'Missing ) after for');
         const failsafe = this.peek().type === TokenType.OPEN_CURLY_TOKEN ? null : this.parseExpr();
         const body = this.parseBlock();

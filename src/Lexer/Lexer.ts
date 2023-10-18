@@ -118,7 +118,7 @@ class Lexer {
             str += this.consume();
         }
 
-        if (this.tokens.length === 0 && str[str.length - 1] !== token)
+        if (this.tokens.length === 0 && !str.endsWith(token))
             throw new LexerError('Unterminated string literal', this.line);
         this.consume();
         return new Token(TokenType.STRING_LITERAL_TOKEN, str, this.line);

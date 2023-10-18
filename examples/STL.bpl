@@ -21,10 +21,10 @@
     Also it's required to use it with evalJS to convert the result to the correct type.
     NUMBER uses JS Number(value), STRING uses String(value), BOOLEAN uses Boolean(value).
 
-  - evalJS(code:STRING):STRING - evaluates the given JavaScript code and returns the result
+  - evalJS(code:STRING):ANY - evaluates the given JavaScript code and returns the result
     Runs the given JavaScript code and returns the result. Current implementation uses eval() under the hood.
     You can use it for some helper functions that are not yet implemented in BPL like Math functions.
-    Every value is converted to STRING using ?.toString(), so you need to use convert() to convert it to the correct type.
+    Return value can be STRING, NUMBER, BOOL or NULL so use convert() to give it and convert it to the correct type.
 
     Since current BPL is compiled to JavaScript, you can use any JavaScript function in your code using evalJS.
     Let your imagination run wild, but be careful since evalJS is not type-safe and can cause errors.
@@ -51,4 +51,24 @@ var timestamp: NUMBER = time();
 print(`Current timestamp: ${timestamp}`);
 
 // Example typeof
-print(`typeof evalJS return value is : ${typeof(evalJS('123'))}`);
+var n: STRING = "123";
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+
+n = '"123"';
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+
+n = "true";
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+
+n = "null";
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+
+n = "undefined";
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+
+
+n = "{}";
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+
+n = "[]";
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);

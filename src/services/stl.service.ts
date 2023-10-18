@@ -62,7 +62,17 @@ class STLService {
                 [[new Token(TokenType.IDENTIFIER_TOKEN, 'code', 0), ValueType.STRING]],
                 (args: RuntimeValue[]) => {
                     const code = (args[0] as StringValue).value;
-                    return new StringValue(eval(code));
+                    let value: any;
+                    try {
+                        value = eval(code);
+                    } catch (error) {
+                        throw new InterpreterError(`eval error: ${(error as Error).message}`, null);
+                    }
+                    if (typeof value === 'string') return new StringValue(value);
+                    if (typeof value === 'number') return new NumberValue(value);
+                    if (typeof value === 'bigint') return new NumberValue(Number(value));
+                    if (typeof value === 'boolean') return new BooleanValue(value);
+                    return new NullValue();
                 },
                 ValueType.ANY,
                 true,

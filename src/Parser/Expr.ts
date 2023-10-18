@@ -142,9 +142,9 @@ export class DoWhileUntilStmt extends Stmt {
 
 export class ForStmt extends Stmt {
     constructor(
-        public initializer: Stmt,
-        public condition: Expr,
-        public increment: Expr,
+        public initializer: Stmt | null,
+        public condition: Expr | null,
+        public increment: Expr | null,
         public failsafe: Expr | null,
         public body: Stmt,
     ) {

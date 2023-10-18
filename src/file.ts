@@ -13,7 +13,7 @@ function main() {
         content = InputService.getFileContent(file);
     }
 
-    flow(content);
+    flow(content, undefined, undefined);
 }
 
 main();

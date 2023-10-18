@@ -10,7 +10,7 @@ import Parser from './Parser/Parser';
 export default function flow(
     content: string,
     cliInterpreter: Interpreter | undefined = undefined,
-    debug: { showTokens: boolean; showExpr: boolean; showValues: boolean } = {
+    debug: { showTokens?: boolean; showExpr: boolean; showValues: boolean } = {
         showTokens: false,
         showExpr: false,
         showValues: false,
