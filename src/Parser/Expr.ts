@@ -121,13 +121,13 @@ export class IfStmt extends Stmt {
   }
 }
 
-export class TerinaryExpr extends Expr {
+export class TernaryExpr extends Expr {
   constructor(
     public condition: Expr,
     public thenBranch: Expr,
     public elseBranch: Expr
   ) {
-    super(ExprType.TERINARY_EXPR);
+    super(ExprType.TERNARY_EXPR);
   }
 }
 

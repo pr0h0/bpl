@@ -37,9 +37,7 @@ class STLService {
         [[new Token(TokenType.IDENTIFIER_TOKEN, "prompt", 0), ValueType.ANY]],
         (args: RuntimeValue[] = []) => {
           const userInput = InputService.getUserInputSync((args[0] as StringValue)?.value) || ""
-          const value = new StringValue(userInput);
-          console.log({ userInput, value });
-          return value;
+          return new StringValue(userInput);
         },
         ValueType.STRING,
         true
@@ -66,7 +64,6 @@ class STLService {
             ],
             (args: RuntimeValue[]) => {
               const code = (args[0] as StringValue).value;
-              console.log({code})
               return new StringValue(eval(code));
             },
             ValueType.ANY,

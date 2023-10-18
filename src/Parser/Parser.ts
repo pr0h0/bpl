@@ -22,7 +22,7 @@ import {
   ReturnStmt,
   StringLiteralExpr,
   TemplateLiteralExpr,
-  TerinaryExpr,
+  TernaryExpr,
   UnaryExpr,
   VariableDeclarationExpr,
   WhileUntilStmt,
@@ -51,10 +51,10 @@ class Parser {
   }
 
   static parseAssignment(): Expr {
-    const expr = this.parseTerinary();
+    const expr = this.parseTernary();
 
     if (this.optional(TokenType.ASSIGNMENT_TOKEN)) {
-      const value = this.parseTerinary();
+      const value = this.parseTernary();
 
       if (expr instanceof IdentifierExpr) {
         return new AssignmentExpr(
@@ -72,7 +72,7 @@ class Parser {
     return expr;
   }
 
-  static parseTerinary(): Expr {
+  static parseTernary(): Expr {
     let expr = this.parseLogical();
 
     if (this.optional(TokenType.QUESTION_MARK_TOKEN)) {
@@ -80,7 +80,7 @@ class Parser {
       this.consume(TokenType.COLON_TOKEN);
       const elseBranch = this.parseExpr();
 
-      expr = new TerinaryExpr(expr, thenBranch, elseBranch);
+      expr = new TernaryExpr(expr, thenBranch, elseBranch);
     }
 
     return expr;
@@ -187,7 +187,7 @@ class Parser {
       return this.parseGrouping();
     }
 
-    if (expr.type === TokenType.OPEN_CURRLY_TOKEN) {
+    if (expr.type === TokenType.OPEN_CURLY_TOKEN) {
       return this.parseBlock();
     }
 
@@ -424,14 +424,14 @@ class Parser {
   }
 
   static parseBlock(): BlockStmt {
-    this.consume(TokenType.OPEN_CURRLY_TOKEN);
+    this.consume(TokenType.OPEN_CURLY_TOKEN);
     const stmts: Expr[] = [];
 
-    while (this.peek().type !== TokenType.CLOSE_CURRLY_TOKEN) {
+    while (this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
       stmts.push(this.parseExpr());
     }
 
-    this.consume(TokenType.CLOSE_CURRLY_TOKEN);
+    this.consume(TokenType.CLOSE_CURLY_TOKEN);
     return new BlockStmt(stmts);
   }
 

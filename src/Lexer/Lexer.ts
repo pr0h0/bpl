@@ -44,9 +44,9 @@ class Lexer {
     if (token === "]")
       return new Token(TokenType.CLOSE_BRACKET_TOKEN, token, this.line);
     if (token === "{")
-      return new Token(TokenType.OPEN_CURRLY_TOKEN, token, this.line);
+      return new Token(TokenType.OPEN_CURLY_TOKEN, token, this.line);
     if (token === "}")
-      return new Token(TokenType.CLOSE_CURRLY_TOKEN, token, this.line);
+      return new Token(TokenType.CLOSE_CURLY_TOKEN, token, this.line);
     if (token === ",")
       return new Token(TokenType.COMMA_TOKEN, token, this.line);
     if (token === ".") return new Token(TokenType.DOT_TOKEN, token, this.line);
