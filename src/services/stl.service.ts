@@ -2,6 +2,7 @@ import Environment from '../Environment/Environment';
 import InterpreterError from '../Errors/InterpreterError';
 import {
     BooleanValue,
+    FunctionValue,
     NativeFunctionValue,
     NullValue,
     NumberValue,
@@ -22,7 +23,19 @@ class STLService {
                 new Token(TokenType.IDENTIFIER_TOKEN, 'print', 0),
                 [[new Token(TokenType.IDENTIFIER_TOKEN, 'value', 0), ValueType.ANY]],
                 (args: RuntimeValue[]) => {
-                    console.log((args[0] as StringValue).value);
+                    if (args[0].type === ValueType.FUNC || args[0].type === ValueType.NATIVE_FUNCTION) {
+                        const func = args[0] as FunctionValue;
+                        let output =
+                            func.type === ValueType.FUNC ? `func ${func.name.value}(` : `STL func ${func.name.value}(`;
+                        output += func.params.map((param) => param[0].value).join(', ');
+                        output += '): ' + func.typeOf + '';
+                        output += ' { ... }';
+                        console.log(output);
+                    } else if (args[0].type === ValueType.NULL) {
+                        console.log(null);
+                    } else {
+                        console.log((args[0] as StringValue).value);
+                    }
                     return new VoidValue();
                 },
                 ValueType.VOID,
@@ -163,7 +176,9 @@ class STLService {
         environment.defineType('BOOL', ValueType.BOOL);
         environment.defineType('NULL', ValueType.NULL);
         environment.defineType('VOID', ValueType.VOID);
-        environment.defineType('ANY', ValueType.ANY);
+        environment.defineType('FUNC', ValueType.FUNC);
+        environment.defineType('NATIVE_FUNC', ValueType.NATIVE_FUNCTION);
+        environment.defineType('TYPE', ValueType.TYPE);
     }
 
     public static populateWithSTLVariables(environment: Environment): void {

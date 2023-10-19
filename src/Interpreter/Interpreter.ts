@@ -1,3 +1,10 @@
+import Environment from '../Environment/Environment';
+import BreakStatement from '../Errors/BreakStatement';
+import ContinueStatement from '../Errors/ContinueStatement';
+import InterpreterError from '../Errors/InterpreterError';
+import ReturnStatement from '../Errors/ReturnStatement';
+import Token from '../Lexer/Token';
+import TokenType from '../Lexer/TokenType';
 import {
     AssignmentExpr,
     BinaryExpr,
@@ -23,6 +30,7 @@ import {
     VariableDeclarationExpr,
     WhileUntilStmt,
 } from '../Parser/Expr';
+import ExprType from '../Parser/ExprType';
 import {
     BooleanValue,
     CustomValue,
@@ -35,15 +43,6 @@ import {
     TypeValue,
     VoidValue,
 } from './Values';
-
-import BreakStatement from '../Errors/BreakStatement';
-import ContinueStatement from '../Errors/ContinueStatement';
-import Environment from '../Environment/Environment';
-import ExprType from '../Parser/ExprType';
-import InterpreterError from '../Errors/InterpreterError';
-import ReturnStatement from '../Errors/ReturnStatement';
-import Token from '../Lexer/Token';
-import TokenType from '../Lexer/TokenType';
 import ValueType from './ValueType';
 
 class Interpreter {
@@ -192,9 +191,9 @@ class Interpreter {
         const parts = expr.value;
         const parsed: StringValue[] = parts.map((part) => this.evaluateExpr(part) as StringValue);
         let result = '';
-        for (let i = 0; i < parsed.length; i++) {
-            const value = parsed[i].value;
-            const parsedValue = value === undefined || value === null ? '' : value.toString();
+        for (const segment of parsed) {
+            const value = segment.value;
+            const parsedValue = value == null ? '' : value.toString();
             result += parsedValue;
         }
 
@@ -224,10 +223,32 @@ class Interpreter {
     }
 
     private evaluateFunctionDeclarationExpr(expr: FunctionDeclarationExpr): RuntimeValue {
-        const func = new FunctionValue(expr.name, expr.params, expr.body, expr.returnType.value);
+        expr.params.forEach((param) => {
+            const [name, type] = param;
+            if (expr.params.filter((param) => param[0].value === name.value).length > 1) {
+                throw new InterpreterError(`Duplicate parameter name: ${name.value}`, expr);
+            }
+
+            if (type === ValueType.VOID || type === ValueType.ANY || type === ValueType.NULL) {
+                throw new InterpreterError(`Invalid parameter type: ${type}`, expr);
+            }
+            this.environment.getType(type);
+        });
+
+        if (expr.returnType.value === ValueType.ANY || expr.returnType.value === ValueType.NULL) {
+            throw new InterpreterError(`Invalid function return type: ${expr.returnType.value}`, expr);
+        }
+        const func = new FunctionValue(
+            expr.name,
+            expr.params,
+            expr.body,
+            expr.returnType.value,
+            false,
+            this.environment,
+        );
 
         this.environment.defineFunction(expr.name.value, func);
-        return new VoidValue();
+        return func;
     }
     private evaluateUnaryExpr(expr: UnaryExpr): RuntimeValue {
         const right = this.evaluateExpr(expr.right);
@@ -313,22 +334,45 @@ class Interpreter {
         return new VoidValue();
     }
     private evaluateFunctionCallExpr(expr: FunctionCallExpr): RuntimeValue {
-        let returnType = ValueType.VOID;
+        const func = this.environment.getFunction(expr.callee.value) as FunctionValue | NativeFunctionValue;
+        const env = new Environment(func.closure || this.environment);
+        const interpreter = new Interpreter(env);
+        const returnType = func.typeOf as ValueType;
+
         try {
-            const env = new Environment(this.environment);
-            const interpreter = new Interpreter(env);
-            const func = this.environment.getFunction(expr.callee.value) as FunctionValue | NativeFunctionValue;
-            returnType = func.typeOf as ValueType;
+            if (expr.args.length !== func.params.length) {
+                throw new InterpreterError(
+                    `Invalid number of arguments: ${expr.args.length} expected ${func.params.length}`,
+                    expr,
+                );
+            }
 
             expr.args.forEach((arg, index) => {
                 const value = this.evaluateExpr(arg);
-                if (func.params[index][1] !== ValueType.ANY && value.type !== func.params[index][1]) {
+                if (
+                    (func.isNative &&
+                        func.params[index][1] !== ValueType.ANY &&
+                        func.params[index][1] !== value.type) ||
+                    (!func.isNative && func.params[index][1] !== value.type)
+                ) {
                     throw new InterpreterError(
                         `Invalid argument type: ${value.type} expected ${func.params[index][1]}`,
                         arg,
                     );
                 }
-                env.defineVariable(func.params[index][0].value, value, false);
+                if (value.type === ValueType.FUNC) {
+                    env.defineFunction(func.params[index][0].value, value as FunctionValue);
+                } else if (value.type === ValueType.NATIVE_FUNCTION) {
+                    env.defineNativeFunction(func.params[index][0].value, value as NativeFunctionValue);
+                } else if (value.type === ValueType.TYPE) {
+                    env.defineType(
+                        func.params[index][0].value,
+                        (value as TypeValue).value,
+                        (value as TypeValue).valueDefinition,
+                    );
+                } else {
+                    env.defineVariable(func.params[index][0].value, value, false);
+                }
             });
 
             if (func.isNative)
@@ -345,6 +389,10 @@ class Interpreter {
                         expr,
                     );
                 return err.value;
+            } else if (err instanceof BreakStatement) {
+                throw new InterpreterError('Break statement outside of loop', expr);
+            } else if (err instanceof ContinueStatement) {
+                throw new InterpreterError('Continue statement outside of loop', expr);
             }
             throw err;
         }
@@ -379,6 +427,25 @@ class Interpreter {
                     return new NullValue();
                 case ValueType.CUSTOM:
                     return new CustomValue(variableValue[0], (variableValue[0] as CustomValue).typeOf);
+                case ValueType.TYPE:
+                    return new TypeValue(
+                        (variableValue[0] as TypeValue).value,
+                        (variableValue[0] as TypeValue).valueDefinition,
+                    );
+                case ValueType.FUNC:
+                    return new FunctionValue(
+                        (variableValue[0] as FunctionValue).name,
+                        (variableValue[0] as FunctionValue).params,
+                        (variableValue[0] as FunctionValue).body,
+                        (variableValue[0] as FunctionValue).typeOf,
+                    );
+                case ValueType.NATIVE_FUNCTION:
+                    return new NativeFunctionValue(
+                        (variableValue[0] as NativeFunctionValue).name,
+                        (variableValue[0] as NativeFunctionValue).params,
+                        (variableValue[0] as NativeFunctionValue).body,
+                        (variableValue[0] as NativeFunctionValue).typeOf,
+                    );
                 default:
                     throw new InterpreterError(`Invalid value type: ${variableValue[1]}`, expr);
             }
@@ -391,6 +458,13 @@ class Interpreter {
         }
     }
     private evaluateVariableDeclarationExpr(expr: VariableDeclarationExpr): RuntimeValue {
+        if (
+            expr.typeOf.value === ValueType.ANY ||
+            expr.typeOf.value === ValueType.VOID ||
+            expr.typeOf.value === ValueType.NULL
+        ) {
+            throw new InterpreterError(`Invalid variable type: ${expr.typeOf.value}`, expr);
+        }
         const value = expr.value ? this.evaluateExpr(expr.value) : new NullValue();
 
         if (value.type !== expr.typeOf.value)

@@ -1,3 +1,4 @@
+import Environment from '../Environment/Environment';
 import Token from '../Lexer/Token';
 import { BlockStmt } from '../Parser/Expr';
 import ValueType from './ValueType';
@@ -54,6 +55,7 @@ export class FunctionValue extends RuntimeValue {
         public body: BlockStmt,
         public typeOf: string,
         public isNative: boolean = false,
+        public closure: Environment | null = null,
     ) {
         super(ValueType.FUNC);
     }
@@ -66,6 +68,7 @@ export class NativeFunctionValue extends RuntimeValue {
         public body: (args: RuntimeValue[]) => RuntimeValue,
         public typeOf: string,
         public isNative: boolean = true,
+        public closure: Environment | null = null,
     ) {
         super(ValueType.NATIVE_FUNCTION);
     }

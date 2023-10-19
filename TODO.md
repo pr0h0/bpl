@@ -1,7 +1,5 @@
 Planned features:
 - [ ] Refactor code
-- [ ] Add a way to pass function as a argument
-- [ ] Add a way to return function from a function
 - [ ] Upgrade operators between types
 - [ ] Add support for arrays
 - [ ] Upgrade current STL
@@ -16,6 +14,9 @@ Planned features:
 - [ ] Add support for async
 
 Done features:
+- [x] Add support for anonymous functions
+- [x] Add a way to pass function as a argument
+- [x] Add a way to return function from a function
 - [x] Add failsafe on loops
 - [x] Improve docs and add examples
 - [x] Improve error messages

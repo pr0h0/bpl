@@ -1,7 +1,7 @@
 import EnvironmentError from '../Errors/EnvironmentError';
 import PrimitiveTypes from '../Interpreter/PrimitiveTypes';
-import ValueType from '../Interpreter/ValueType';
 import { CustomValue, FunctionValue, NativeFunctionValue, RuntimeValue, TypeValue } from '../Interpreter/Values';
+import ValueType from '../Interpreter/ValueType';
 import STLService from '../services/stl.service';
 
 class Environment {
@@ -41,7 +41,6 @@ class Environment {
     }
 
     public defineType(name: string, value: ValueType, extraProperties?: Record<string, ValueType>): void {
-        if (this.parent) throw new EnvironmentError('Types can be defined only in global scope!');
         if (this.isDefined(name)) throw new EnvironmentError(`Name ${name} is already taken!`);
 
         this.types.set(name, new TypeValue(value, extraProperties));
@@ -93,8 +92,15 @@ class Environment {
     }
 
     public getFunction(name: string): FunctionValue | NativeFunctionValue {
-        if (!this.isDefinedFunction(name)) throw new EnvironmentError(`Function ${name} is not defined!`);
-        return this.functions.get(name) || this.parent?.getFunction(name);
+        const isDefinedAsFunction = this.isDefinedFunction(name);
+        const isDefinedAsVariable = this.isDefinedVariable(name);
+        if (!isDefinedAsFunction && !isDefinedAsVariable)
+            throw new EnvironmentError(`Function ${name} is not defined!`);
+        if (isDefinedAsFunction) return this.functions.get(name) || this.parent?.getFunction(name);
+        const func = this.getVariable(name) || this.parent?.getVariable(name);
+        if (func[1] !== ValueType.FUNC && func[1] !== ValueType.NATIVE_FUNCTION)
+            throw new EnvironmentError(`Variable ${name} is not a function!`);
+        return func[0] as FunctionValue | NativeFunctionValue;
     }
 
     public isConst(name: string): boolean {

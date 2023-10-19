@@ -1,4 +1,5 @@
 import ParserError from '../Errors/ParserError';
+import ValueType from '../Interpreter/ValueType';
 import Lexer from '../Lexer/Lexer';
 import Token from '../Lexer/Token';
 import TokenType from '../Lexer/TokenType';
@@ -83,7 +84,10 @@ class Parser {
     static parseLogical(): Expr {
         let expr = this.parseComparison();
 
-        while (this.peek().type === TokenType.AND_TOKEN || this.peek().type === TokenType.OR_TOKEN) {
+        while (
+            this.tokens.length &&
+            (this.peek().type === TokenType.AND_TOKEN || this.peek().type === TokenType.OR_TOKEN)
+        ) {
             const operator = this.consume(this.peek().type);
             const right = this.parseComparison();
             expr = new BinaryExpr(expr, operator, right);
@@ -96,7 +100,7 @@ class Parser {
         let expr = this.parseAddition();
 
         while (
-            this.peek().type === TokenType.EQUAL_TOKEN ||
+            (this.tokens.length && this.peek().type === TokenType.EQUAL_TOKEN) ||
             this.peek().type === TokenType.NOT_EQUAL_TOKEN ||
             this.peek().type === TokenType.GREATER_THEN_TOKEN ||
             this.peek().type === TokenType.GREATER_OR_EQUAL_TOKEN ||
@@ -114,7 +118,10 @@ class Parser {
     static parseAddition(): Expr {
         let expr = this.parseMultiplication();
 
-        while (this.peek().type === TokenType.PLUS_TOKEN || this.peek().type === TokenType.MINUS_TOKEN) {
+        while (
+            this.tokens.length &&
+            (this.peek().type === TokenType.PLUS_TOKEN || this.peek().type === TokenType.MINUS_TOKEN)
+        ) {
             const operator = this.consume(this.peek().type);
             const right = this.parseMultiplication();
             expr = new BinaryExpr(expr, operator, right);
@@ -127,9 +134,10 @@ class Parser {
         let expr = this.parseUnary();
 
         while (
-            this.peek().type === TokenType.STAR_TOKEN ||
-            this.peek().type === TokenType.SLASH_TOKEN ||
-            this.peek().type === TokenType.MODULO_TOKEN
+            this.tokens.length &&
+            (this.peek().type === TokenType.STAR_TOKEN ||
+                this.peek().type === TokenType.SLASH_TOKEN ||
+                this.peek().type === TokenType.MODULO_TOKEN)
         ) {
             const operator = this.consume(this.peek().type);
             const right = this.parseUnary();
@@ -308,10 +316,12 @@ class Parser {
 
     static parseFunctionDeclaration(): FunctionDeclarationExpr {
         this.consume(TokenType.IDENTIFIER_TOKEN);
-        const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing function name');
+        const name =
+            this.optional(TokenType.IDENTIFIER_TOKEN) ||
+            new Token(TokenType.IDENTIFIER_TOKEN, `anonymous_${this.peek().line}_${Date.now()}_${Math.random()}`, 0);
         this.consume(TokenType.OPEN_PAREN_TOKEN);
         const params: [Token, string][] = [];
-        while (this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
+        while (this.tokens.length && this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
             const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing parameter name');
             this.consume(TokenType.COLON_TOKEN, 'Missing : after parameter name');
             const type = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing type of parameter');
@@ -320,8 +330,11 @@ class Parser {
         }
 
         this.consume(TokenType.CLOSE_PAREN_TOKEN, 'Missing ) after function parameters');
-        this.consume(TokenType.COLON_TOKEN, 'Missing : after function parameters');
-        const typeOf = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing return type of function');
+        let typeOf: Token = new Token(TokenType.IDENTIFIER_TOKEN, ValueType.VOID, 0);
+        if (this.peek().type === TokenType.COLON_TOKEN) {
+            this.consume(TokenType.COLON_TOKEN, 'Missing : after function parameters');
+            typeOf = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing return type of function');
+        }
 
         const body = this.parseBlock();
 
@@ -333,7 +346,7 @@ class Parser {
         this.consume(TokenType.OPEN_PAREN_TOKEN, 'Missing ( after function name');
         const args: Expr[] = [];
 
-        while (this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
+        while (this.tokens.length && this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
             args.push(this.parseExpr());
             this.optional(TokenType.COMMA_TOKEN);
         }
@@ -393,7 +406,7 @@ class Parser {
         this.consume(TokenType.OPEN_CURLY_TOKEN, "Missing { on block's start");
         const stmts: Expr[] = [];
 
-        while (this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
+        while (this.tokens.length && this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
             stmts.push(this.parseExpr());
         }
 
