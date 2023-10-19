@@ -1,7 +1,7 @@
 /**
   Variables in BPL are declared using the `var` and `const` keywords.
   `var` is used to declare variables that can be reassigned, while `const` is used to declare variables that cannot be reassigned.
-  Each variable must be declared with a type annotation and aprropriate value.
+  Each variable must be declared with a type annotation and appropriate value.
   The type annotation is used to determine the type of the variable.
 
   Syntax:
