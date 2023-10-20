@@ -192,6 +192,9 @@ class Lexer {
         if (this.seek() === '=') {
             return new Token(TokenType.STAR_EQUAL_TOKEN, token + this.consume(), this.line);
         }
+        if (this.seek() === '*') {
+            return new Token(TokenType.EXPONENT_TOKEN, token + this.consume(), this.line);
+        }
         return new Token(TokenType.STAR_TOKEN, token, this.line);
     }
     static parseMinusToken(token: string): Token | null {

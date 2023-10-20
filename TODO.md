@@ -2,6 +2,7 @@ Planned features:
 - [ ] Refactor code
 - [ ] Upgrade operators between types
 - [ ] Add support for arrays
+- [ ] Add support for tuples
 - [ ] Upgrade current STL
 - [ ] Add a way to add a new type
 - [ ] Add support for operator overloading

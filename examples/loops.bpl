@@ -9,7 +9,7 @@
 
 /**
   1. For loop follows the JavaScript syntax, we have initializer, condition and increment/decrement.
-  Of course we can put any expression in the initializer, condition and increment/decrement, but it is not recommended.
+  Of course we can put any expression in the initializer, condition and increment/decrement, but it can be also ommited, but only semicolons are required.
   The for loop is used when we know how many times we want to execute the loop.
   Initializer is evaluated only once, before the first iteration.
   Condition is evaluated before each iteration, if it is true, the loop continues, otherwise it stops.
@@ -21,7 +21,7 @@
   Condition type is BOOLEAN and it must be provided as that, otherwise it will be considered false for any other TYPE;
 
   Syntax:
-  for(initializer; condition:BOOLEAN; increment/decrement) [failsafe:NUMBER] {
+  for([initializer]; [condition:BOOLEAN]; [increment/decrement]) [failsafe:NUMBER] {
     // code
   }
 **/
@@ -37,7 +37,7 @@ for(var i:NUMBER = 0; i < 10; i++) 10 {
 }
 
 // Example 3 - Minimal valid for loop setup
-for(1;true;1) {
+for(;;) {
   print("Hello World");
   break;
 }

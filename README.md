@@ -26,9 +26,10 @@ To declare variable you can use `var` or `const` keyword. `var` is used for vari
 var a: NUMBER = 5;
 const b: STRING = "Hello World";
 var c: BOOL = true;
+var f: FUNC = print;
 ```
 
-Arrays and Objects are not supported yet
+Arrays, Tuples and Objects are not supported yet
 
 ### Types
 There are 4 primitive types in BPL:
@@ -36,12 +37,20 @@ There are 4 primitive types in BPL:
 - `STRING` - string type
 - `BOOL` - boolean type
 - `VOID` - void type
-It also supports `ANY` type that can be anything but it can't be used in code, currently it's used for native function arguments and return type
+
+It also supports `ANY` type that can be anything but it can't be used in code, currently it's used for native function arguments and their return type
+
+Also there are complex types:
+- `FUNC` - function type
+- `NATIVE_FUNCTION` - special case if you plan to assign some of the native functions to variable
+- ARRAY<T> - array type, T is type of array
+- TUPLE<T1, T2, ...> - tuple type, T1, T2, ... are types of tuple
+- OBJECT { key: TYPE, key2: TYPE2, ...} - object type with custom properties
 
 Currently there is no support for custom types
 
 ### Functions
-To declare function you can use `func` keyword. After that put function name, open parenthesis, arguments separated by comma, close parenthesis, colon and return type. After that put function body in curly braces. Functions are declared like this:
+To declare function you can use `func` keyword. After that put function name, open parenthesis, arguments separated by comma, close parenthesis, colon and return type, if return type is omited, VOID is implicitly set. After that put function body in curly braces. Functions are declared like this:
 ```
 func add(a: NUMBER, b: NUMBER): NUMBER {
     return a + b;
@@ -92,6 +101,33 @@ do {
 To declare for loop you can use `for` keyword. After that put open parenthesis, initializator, it can be any expression but it can't be empty, semicolon, condition can be anything but it can't be skipped, semicolon, increment can be any expression but it needs to be present, close parenthesis and put for loop body in curly braces. For loops are declared like this:
 ```
 for (var i: NUMBER = 0; i < 10; i++) {
+    a = a + 1;
+}
+```
+
+### Failsafe
+To prevent infinite loops you can use failsafe. Failsafe limits number of itteration of loop. It always go before function loop and it's optional  Failsafe is declared like this:
+```
+while (a < b) 100 {
+    a = a + 1;
+}
+```
+
+```
+for (var i: NUMBER = 0; i < 10; i++) 100 {
+    a = a + 1;
+}
+```
+
+```
+do 100 {
+    a = a + 1;
+} while (a < b);
+```
+
+```
+var failsafe: NUMBER = 100;
+until (a > b) failsafe {
     a = a + 1;
 }
 ```

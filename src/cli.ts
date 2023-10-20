@@ -26,10 +26,29 @@ async function main() {
             showValues = !showValues;
             continue;
         }
+        if (input === '#clear') {
+            console.clear();
+            continue;
+        }
+        if (input === '#on') {
+            showTokens = true;
+            showExpr = true;
+            showValues = true;
+            continue;
+        }
+        if (input === '#off') {
+            showTokens = false;
+            showExpr = false;
+            showValues = false;
+            continue;
+        }
         if (input === '#help') {
             console.log('#token - toggle tokens');
             console.log('#expr - toggle ast');
             console.log('#value - toggle values');
+            console.log('#clear - clear the console');
+            console.log('#on - turn on all toggles');
+            console.log('#off - turn off all toggles');
             console.log('#exit - exit the program');
             continue;
         }

@@ -524,6 +524,8 @@ class Interpreter {
             case TokenType.MODULO_TOKEN:
                 if (right.value === 0) throw new InterpreterError(`Modulo by zero`, null);
                 return new NumberValue(left.value % right.value);
+            case TokenType.EXPONENT_TOKEN:
+                return new NumberValue(left.value ** right.value);
             case TokenType.EQUAL_TOKEN:
                 return new BooleanValue(left.value === right.value);
             case TokenType.NOT_EQUAL_TOKEN:

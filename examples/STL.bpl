@@ -16,12 +16,12 @@
     Returns the type of the value as a string. You can use it to check the type of the value.
     It's uses internal types of BPL, so it may not be the same as JavaScript types.
 
-  - convert(value: ANY, type: TYPE): TYPE - converts the value to the given primitive type
-    Converts the value to the given type. It's recommended to use it with input to convert STRING to NUMBER for eg.
+  - convert(value: ANY, type: TYPE): (value of that type) - converts the value to the given primitive type
+    Converts the value to the given type. It's recommended to use it for eg. with input to convert STRING to NUMBER.
     Also it's required to use it with evalJS to convert the result to the correct type.
     NUMBER uses JS Number(value), STRING uses String(value), BOOLEAN uses Boolean(value).
 
-  - evalJS(code:STRING):ANY - evaluates the given JavaScript code and returns the result
+  - evalJS(code:STRING): NUMBER|STRING|BOOLEAN|NULL - evaluates the given JavaScript code and returns the result
     Runs the given JavaScript code and returns the result. Current implementation uses eval() under the hood.
     You can use it for some helper functions that are not yet implemented in BPL like Math functions.
     Return value can be STRING, NUMBER, BOOL or NULL so use convert() to give it and convert it to the correct type.
@@ -43,7 +43,7 @@ var name:STRING = input("Enter your name: ");
 print("Hello, " + name + "!");
 
 // Example evalJS
-var random: NUMBER = convert(evalJS("Math.random()"), NUMBER);
+var random: NUMBER = evalJS("Math.random()");
 print(`Random number: ${random}`);
 
 // Example timestamp
@@ -52,23 +52,23 @@ print(`Current timestamp: ${timestamp}`);
 
 // Example typeof
 var n: STRING = "123";
-print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`); // NUMBER
 
 n = '"123"';
-print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`); // STRING
 
 n = "true";
-print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`); // BOOLEAN
 
 n = "null";
-print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`); // NULL
 
 n = "undefined";
-print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`); // NULL
 
 
 n = "{}";
-print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`); // NULL
 
 n = "[]";
-print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`);
+print(`typeof ${n} evalJS return value is : ${typeof(evalJS(n))}`); // NULL

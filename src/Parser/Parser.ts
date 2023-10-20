@@ -136,6 +136,7 @@ class Parser {
         while (
             this.tokens.length &&
             (this.peek().type === TokenType.STAR_TOKEN ||
+                this.peek().type === TokenType.EXPONENT_TOKEN ||
                 this.peek().type === TokenType.SLASH_TOKEN ||
                 this.peek().type === TokenType.MODULO_TOKEN)
         ) {
