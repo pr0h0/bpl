@@ -20,6 +20,7 @@ import {
     IfStmt,
     NullLiteralExpr,
     NumberLiteralExpr,
+    ObjectAccessExpr,
     ObjectLiteralExpr,
     ReturnStmt,
     StringLiteralExpr,
@@ -237,11 +238,19 @@ class Parser {
             }
 
             if (this.peek(1).type === TokenType.OPEN_PAREN_TOKEN) return this.parseFunctionCall();
+            if(this.peek(1).type == TokenType.DOT_TOKEN) return this.parseObjectAccess();
 
             return new IdentifierExpr(this.consume(TokenType.IDENTIFIER_TOKEN).value);
         }
 
         throw new ParserError(`Expected a primary expression but got ${expr.type}`, expr);
+    }
+
+    static parseObjectAccess(): Expr {
+        const name = this.consume(TokenType.IDENTIFIER_TOKEN);
+        this.consume(TokenType.DOT_TOKEN);
+        const field = this.consume(TokenType.IDENTIFIER_TOKEN);
+        return new ObjectAccessExpr(new IdentifierExpr(name.value), field);
     }
 
     static parseTypeDeclaration(): Expr {

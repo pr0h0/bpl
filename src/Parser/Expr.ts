@@ -187,3 +187,9 @@ export class TypeDeclarationStmt extends Stmt {
         super(ExprType.TYPE_DECLARATION_STMT);
     }
 }
+
+export class ObjectAccessExpr extends Expr {
+    constructor(public object: Expr, public name: Token) {
+        super(ExprType.OBJECT_ACCESS_EXPR);
+    }
+}

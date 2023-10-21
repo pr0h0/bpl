@@ -22,6 +22,7 @@ import {
     IfStmt,
     NullLiteralExpr,
     NumberLiteralExpr,
+    ObjectAccessExpr,
     ObjectLiteralExpr,
     ReturnStmt,
     StringLiteralExpr,
@@ -114,9 +115,20 @@ class Interpreter {
             return this.evaluateDoWhileUntilStmt(expr);
         } else if (expr instanceof TypeDeclarationStmt) {
             return this.evaluateTypeDeclarationStmt(expr);
+        } else if(expr instanceof ObjectAccessExpr) {
+            return this.evaluateObjectAccessExpr(expr);
         }
 
         throw new InterpreterError(`Invalid expression: ${expr.constructor.name}`, expr);
+    }
+
+    private evaluateObjectAccessExpr(expr: ObjectAccessExpr): RuntimeValue {
+        const object = this.evaluateExpr(expr.object) as ObjectValue;
+        const property = expr.name.value;
+        if (!object.value.has(property)) {
+            throw new InterpreterError(`Invalid property access: ${property}`, expr);
+        }
+        return object.value.get(property) as RuntimeValue;
     }
 
     private evaluateObjectLiteralExpr(expr: ObjectLiteralExpr): RuntimeValue {
