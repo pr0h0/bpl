@@ -2,10 +2,10 @@ import Environment from '../Environment/Environment';
 import InterpreterError from '../Errors/InterpreterError';
 import {
     BooleanValue,
-    FunctionValue,
     NativeFunctionValue,
     NullValue,
     NumberValue,
+    ObjectValue,
     RuntimeValue,
     StringValue,
     VoidValue,
@@ -14,6 +14,7 @@ import ValueType from '../Interpreter/ValueType';
 import Token from '../Lexer/Token';
 import TokenType from '../Lexer/TokenType';
 import InputService from './input.service';
+import PrintService from './print.service';
 
 class STLService {
     public static populateWithSTLFunctions(environment: Environment): void {
@@ -23,19 +24,8 @@ class STLService {
                 new Token(TokenType.IDENTIFIER_TOKEN, 'print', 0),
                 [[new Token(TokenType.IDENTIFIER_TOKEN, 'value', 0), ValueType.ANY]],
                 (args: RuntimeValue[]) => {
-                    if (args[0].type === ValueType.FUNC || args[0].type === ValueType.NATIVE_FUNCTION) {
-                        const func = args[0] as FunctionValue;
-                        let output =
-                            func.type === ValueType.FUNC ? `func ${func.name.value}(` : `STL func ${func.name.value}(`;
-                        output += func.params.map((param) => param[0].value).join(', ');
-                        output += '): ' + func.typeOf + '';
-                        output += ' { ... }';
-                        console.log(output);
-                    } else if (args[0].type === ValueType.NULL) {
-                        console.log(null);
-                    } else {
-                        console.log((args[0] as StringValue).value);
-                    }
+                    const value = PrintService.print(args[0]);
+                    console.log(value);
                     return new VoidValue();
                 },
                 ValueType.VOID,
@@ -49,7 +39,8 @@ class STLService {
                 new Token(TokenType.IDENTIFIER_TOKEN, 'input', 0),
                 [[new Token(TokenType.IDENTIFIER_TOKEN, 'prompt', 0), ValueType.ANY]],
                 (args: RuntimeValue[] = []) => {
-                    const userInput = InputService.getUserInputSync((args[0] as StringValue)?.value?.toString()) || '';
+                    const output = PrintService.print(args[0]).replace(/^[\"](.*)[\"]$/g, '$1');
+                    const userInput = InputService.getUserInputSync(output) || '';
                     return new StringValue(userInput);
                 },
                 ValueType.STRING,
@@ -164,7 +155,11 @@ class STLService {
             new NativeFunctionValue(
                 new Token(TokenType.IDENTIFIER_TOKEN, 'typeof'),
                 [[new Token(TokenType.IDENTIFIER_TOKEN, 'value', 0), ValueType.ANY]],
-                (args: RuntimeValue[]) => new StringValue(args[0].type),
+                (args: RuntimeValue[]) => {
+                    const type = args[0].type;
+                    if (type === ValueType.OBJECT) return new StringValue((args[0] as ObjectValue).typeOf);
+                    return new StringValue(type);
+                },
                 ValueType.STRING,
             ),
         );
@@ -179,6 +174,7 @@ class STLService {
         environment.defineType('FUNC', ValueType.FUNC);
         environment.defineType('NATIVE_FUNC', ValueType.NATIVE_FUNCTION);
         environment.defineType('TYPE', ValueType.TYPE);
+        environment.defineType('OBJECT', ValueType.OBJECT);
     }
 
     public static populateWithSTLVariables(environment: Environment): void {

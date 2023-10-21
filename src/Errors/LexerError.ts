@@ -8,7 +8,7 @@ class LexerError extends Error {
     public line: number;
 
     public override toString(): string {
-        return `LEXER:: ${this.message} at line ${this.line}`;
+        return `LEXER:: ${this.message} at line ${this.line}\n\n${this.stack}`;
     }
 }
 

@@ -10,7 +10,7 @@ class InterpreterError extends Error {
     public expr: Expr | null;
 
     public override toString(): string {
-        return `Interpreter:: ${this.message} [${this.expr?.type}]`;
+        return `Interpreter:: ${this.message} [${this.expr?.type}]\n\n${this.stack}`;
     }
 }
 

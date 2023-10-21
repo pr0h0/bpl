@@ -22,10 +22,12 @@ import {
     IfStmt,
     NullLiteralExpr,
     NumberLiteralExpr,
+    ObjectLiteralExpr,
     ReturnStmt,
     StringLiteralExpr,
     TemplateLiteralExpr,
     TernaryExpr,
+    TypeDeclarationStmt,
     UnaryExpr,
     VariableDeclarationExpr,
     WhileUntilStmt,
@@ -72,6 +74,8 @@ class Interpreter {
             return this.evaluateBooleanLiteral(expr);
         } else if (expr instanceof NullLiteralExpr) {
             return this.evaluateNullLiteral(expr);
+        } else if (expr instanceof ObjectLiteralExpr) {
+            return this.evaluateObjectLiteralExpr(expr);
         } else if (expr instanceof EmptyExpr) {
             return new VoidValue();
         } else if (expr instanceof BinaryExpr) {
@@ -108,9 +112,36 @@ class Interpreter {
             return this.evaluateWhileUntilStmt(expr);
         } else if (expr instanceof DoWhileUntilStmt) {
             return this.evaluateDoWhileUntilStmt(expr);
+        } else if (expr instanceof TypeDeclarationStmt) {
+            return this.evaluateTypeDeclarationStmt(expr);
         }
 
         throw new InterpreterError(`Invalid expression: ${expr.constructor.name}`, expr);
+    }
+
+    private evaluateObjectLiteralExpr(expr: ObjectLiteralExpr): RuntimeValue {
+        const object: Map<string, RuntimeValue> = new Map<string, RuntimeValue>();
+        expr.value.forEach((pair) => {
+            const [key, value] = pair;
+            object.set(key.value, this.evaluateExpr(value));
+        });
+        return new ObjectValue(object, ValueType.OBJECT);
+    }
+
+    private evaluateTypeDeclarationStmt(stmt: TypeDeclarationStmt): RuntimeValue {
+        const name = stmt.name.value;
+        const members = stmt.members;
+        const extraProperties: Record<string, string> = {};
+        members.forEach((member) => {
+            if ([ValueType.ANY, ValueType.NULL, ValueType.VOID].includes(member[1].value as ValueType)) {
+                throw new InterpreterError(`Invalid property type: ${member[1].value}`, stmt);
+            }
+            extraProperties[member[0].value] = member[1].value;
+            this.environment.getType(member[1].value);
+        });
+
+        this.environment.defineType(name, ValueType.TYPE, extraProperties);
+        return new VoidValue();
     }
 
     private evaluateWhileUntilStmt(stmt: WhileUntilStmt): RuntimeValue {
@@ -353,7 +384,12 @@ class Interpreter {
                     (func.isNative &&
                         func.params[index][1] !== ValueType.ANY &&
                         func.params[index][1] !== value.type) ||
-                    (!func.isNative && func.params[index][1] !== value.type)
+                    (!func.isNative &&
+                        (func.params[index][1] !== value.type ||
+                            (func.params[index][1] !== ValueType.OBJECT && func.params[index][1] !== value.type) ||
+                            (func.params[index][1] === ValueType.OBJECT &&
+                                (value as ObjectValue).typeOf !== func.params[index][1] &&
+                                this.verifyObject(value as ObjectValue, func.params[index][1]) !== undefined)))
                 ) {
                     throw new InterpreterError(
                         `Invalid argument type: ${value.type} expected ${func.params[index][1]}`,
@@ -383,7 +419,12 @@ class Interpreter {
             if (err instanceof ReturnStatement) {
                 if (returnType === ValueType.VOID)
                     throw new InterpreterError('Function of type VOID cannot return a value', expr);
-                if (returnType !== err.value.type)
+                if (
+                    (err.value.type !== ValueType.OBJECT && returnType !== err.value.type) ||
+                    (err.value.type === ValueType.OBJECT &&
+                        (err.value as ObjectValue).typeOf !== returnType &&
+                        this.verifyObject(err.value as ObjectValue, returnType) !== undefined)
+                )
                     throw new InterpreterError(
                         `Invalid return type: ${err.value.type}, but expected ${returnType}`,
                         expr,
@@ -416,7 +457,7 @@ class Interpreter {
         }
 
         if (flag === 'variable' && variableValue !== null) {
-            switch (variableValue[1]) {
+            switch (variableValue[0].type) {
                 case ValueType.NUMBER:
                     return new NumberValue((variableValue[0] as NumberValue).value);
                 case ValueType.STRING:
@@ -430,6 +471,7 @@ class Interpreter {
                 case ValueType.TYPE:
                     return new TypeValue(
                         (variableValue[0] as TypeValue).value,
+                        variableValue[1],
                         (variableValue[0] as TypeValue).valueDefinition,
                     );
                 case ValueType.FUNC:
@@ -446,16 +488,21 @@ class Interpreter {
                         (variableValue[0] as NativeFunctionValue).body,
                         (variableValue[0] as NativeFunctionValue).typeOf,
                     );
-                default:
+                default: {
+                    const type = variableValue[1];
+                    if (this.environment.isDefinedType(type)) {
+                        const typeValue = this.environment.getType(type);
+                        return new ObjectValue((variableValue[0] as ObjectValue).value, typeValue.type);
+                    }
                     throw new InterpreterError(`Invalid value type: ${variableValue[1]}`, expr);
+                }
             }
         } else if (flag === 'function' && functionValue !== null) {
             return functionValue as FunctionValue | NativeFunctionValue;
         } else if (flag === 'type' && typeValue !== null) {
             return typeValue;
-        } else {
-            throw this.environment.getVariable(expr.value);
         }
+        throw this.environment.getVariable(expr.value);
     }
     private evaluateVariableDeclarationExpr(expr: VariableDeclarationExpr): RuntimeValue {
         if (
@@ -466,9 +513,14 @@ class Interpreter {
             throw new InterpreterError(`Invalid variable type: ${expr.typeOf.value}`, expr);
         }
         const value = expr.value ? this.evaluateExpr(expr.value) : new NullValue();
+        const type = expr.typeOf.value;
 
-        if (value.type !== expr.typeOf.value)
+        if (value.type !== ValueType.OBJECT && value.type !== expr.typeOf.value)
             throw new InterpreterError(`Invalid variable type: ${value.type} expected ${expr.typeOf.value}`, expr);
+        if (value.type === ValueType.OBJECT && !this.environment.isDefinedType(type))
+            throw new InterpreterError(`Type ${type} is not defined!`, expr);
+        if (value.type === ValueType.OBJECT) this.verifyObject(value as ObjectValue, type);
+        if (value.type === ValueType.OBJECT) (value as ObjectValue).typeOf = type;
 
         this.environment.defineVariable(expr.name.value, value, expr.isConst);
         return value;
@@ -611,6 +663,39 @@ class Interpreter {
             return new NumberValue(parseFloat(expr.value.toString()));
         }
         return new NumberValue(parseInt(expr.value.toString()));
+    }
+
+    private verifyObject(object: ObjectValue, type: string): void {
+        const typeValue = this.environment.getType(type);
+        const typeDefinition = typeValue.valueDefinition;
+        const objectDefinition = object.value;
+        const objectKeys = Array.from(objectDefinition.keys());
+        const typeKeys = Object.keys(typeDefinition);
+        const missingKeys = typeKeys.filter((key) => !objectKeys.includes(key));
+        const extraKeys = objectKeys.filter((key) => !typeKeys.includes(key));
+        if (missingKeys.length > 0) {
+            throw new InterpreterError(`Object is missing keys: ${missingKeys.join(', ')} from type ${type}`, null);
+        }
+        if (extraKeys.length > 0) {
+            throw new InterpreterError(`Object has extra keys: ${extraKeys.join(', ')} from type ${type}`, null);
+        }
+        objectDefinition.forEach((value, key) => {
+            const type = typeDefinition[key];
+            if (
+                (value.type !== ValueType.OBJECT && value.type !== type) ||
+                (value.type === ValueType.OBJECT && (value as ObjectValue).typeOf !== type)
+            ) {
+                throw new InterpreterError(
+                    `Invalid object property '${key}' type: ${value.type} expected ${type}`,
+                    null,
+                );
+            }
+            if (value.type === ValueType.OBJECT) {
+                this.verifyObject(value as ObjectValue, type);
+            }
+        });
+
+        if (object.typeOf !== type) object.typeOf = type;
     }
 }
 

@@ -5,7 +5,7 @@ class EnvironmentError extends Error {
     }
 
     public override toString() {
-        return `EnvironmentError::${this.message}`;
+        return `EnvironmentError::${this.message}\n\n${this.stack}`;
     }
 }
 

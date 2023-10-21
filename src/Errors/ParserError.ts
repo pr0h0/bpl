@@ -12,7 +12,7 @@ class ParserError extends Error {
     public token: Token | null;
 
     public override toString(): string {
-        return `Parser:: ${this.message} at line ${this.line} [${this.token?.value}]`;
+        return `Parser:: ${this.message} at line ${this.line} [${this.token?.value}]\n\n${this.stack}`;
     }
 }
 

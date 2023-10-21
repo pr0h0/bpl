@@ -81,7 +81,6 @@ export class ArrayValue extends RuntimeValue {
     }
 }
 
-// TODO: Add support for object values
 export class ObjectValue extends RuntimeValue {
     constructor(public value: Map<string, RuntimeValue>, public typeOf: string) {
         super(ValueType.OBJECT);
@@ -89,7 +88,7 @@ export class ObjectValue extends RuntimeValue {
 }
 
 export class TypeValue extends RuntimeValue {
-    constructor(public value: ValueType, public valueDefinition: any) {
+    constructor(public value: ValueType, public typeOf: string, public valueDefinition: Record<string, string>) {
         super(ValueType.TYPE);
     }
 }

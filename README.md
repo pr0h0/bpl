@@ -43,11 +43,17 @@ It also supports `ANY` type that can be anything but it can't be used in code, c
 Also there are complex types:
 - `FUNC` - function type
 - `NATIVE_FUNCTION` - special case if you plan to assign some of the native functions to variable
-- ARRAY<T> - array type, T is type of array
-- TUPLE<T1, T2, ...> - tuple type, T1, T2, ... are types of tuple
-- OBJECT { key: TYPE, key2: TYPE2, ...} - object type with custom properties
+- `ARRAY<T>` - array type, T is type of array
+- `TUPLE<T1, T2, ...>` - tuple type, T1, T2, ... are types of tuple
+- `OBJECT` { key: TYPE, key2: TYPE2, ...} - object type with custom properties
 
-Currently there is no support for custom types
+You can define custom types using `type` keyword
+```
+    type USER = {
+        name: STRING,
+        age: NUMBER
+    }
+```
 
 ### Functions
 To declare function you can use `func` keyword. After that put function name, open parenthesis, arguments separated by comma, close parenthesis, colon and return type, if return type is omited, VOID is implicitly set. After that put function body in curly braces. Functions are declared like this:

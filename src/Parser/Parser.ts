@@ -20,10 +20,12 @@ import {
     IfStmt,
     NullLiteralExpr,
     NumberLiteralExpr,
+    ObjectLiteralExpr,
     ReturnStmt,
     StringLiteralExpr,
     TemplateLiteralExpr,
     TernaryExpr,
+    TypeDeclarationStmt,
     UnaryExpr,
     VariableDeclarationExpr,
     WhileUntilStmt,
@@ -178,7 +180,7 @@ class Parser {
         }
 
         if (expr.type === TokenType.OPEN_CURLY_TOKEN) {
-            return this.parseBlock();
+            return this.parseObjectLiteral();
         }
 
         if (expr.type === TokenType.EOF_TOKEN) {
@@ -230,12 +232,33 @@ class Parser {
                 return this.parseFunctionDeclaration();
             }
 
+            if (name.value === 'type') {
+                return this.parseTypeDeclaration();
+            }
+
             if (this.peek(1).type === TokenType.OPEN_PAREN_TOKEN) return this.parseFunctionCall();
 
             return new IdentifierExpr(this.consume(TokenType.IDENTIFIER_TOKEN).value);
         }
 
         throw new ParserError(`Expected a primary expression but got ${expr.type}`, expr);
+    }
+
+    static parseTypeDeclaration(): Expr {
+        this.consume(TokenType.IDENTIFIER_TOKEN);
+        const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing type name');
+        this.consume(TokenType.ASSIGNMENT_TOKEN, 'Missing = after type name')
+        this.consume(TokenType.OPEN_CURLY_TOKEN, 'Missing { after type name');
+        const fields: [Token, Token][] = [];
+        while (this.tokens.length && this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
+            const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing field name');
+            this.consume(TokenType.COLON_TOKEN, 'Missing : after field name');
+            const type = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing type of field');
+            fields.push([name, type]);
+            this.optional(TokenType.COMMA_TOKEN);
+        }
+        this.consume(TokenType.CLOSE_CURLY_TOKEN, 'Missing } after type fields');
+        return new TypeDeclarationStmt(name, fields);
     }
 
     static parseWhileUntil(): WhileUntilStmt {
@@ -379,9 +402,23 @@ class Parser {
         const typeOf = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing type of variable');
 
         this.consume(TokenType.ASSIGNMENT_TOKEN, 'Missing = after variable declaration');
-        const value = this.parseExpr();
+        const value = this.peek().type === TokenType.OPEN_CURLY_TOKEN ? this.parseObjectLiteral() : this.parseExpr();
 
         return new VariableDeclarationExpr(name, typeOf, value, type.value === 'const');
+    }
+
+    static parseObjectLiteral(): Expr {
+        this.consume(TokenType.OPEN_CURLY_TOKEN);
+        const fields: [Token, Expr][] = [];
+        while (this.tokens.length && this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
+            const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing field name');
+            this.consume(TokenType.COLON_TOKEN, 'Missing : after field name');
+            const value = this.parseExpr();
+            fields.push([name, value]);
+            this.optional(TokenType.COMMA_TOKEN);
+        }
+        this.consume(TokenType.CLOSE_CURLY_TOKEN, 'Missing } after object fields');
+        return new ObjectLiteralExpr(fields);
     }
 
     static parseIf(): IfStmt {

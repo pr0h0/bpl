@@ -47,6 +47,12 @@ export class TypeLiteralExpr extends Expr {
     }
 }
 
+export class ObjectLiteralExpr extends Expr {
+    constructor(public value: [Token, Expr][]) {
+        super(ExprType.OBJECT_LITERAL_EXPR);
+    }
+}
+
 export class IdentifierExpr extends Expr {
     constructor(public value: string) {
         super(ExprType.IDENTIFIER_EXPR);

@@ -40,10 +40,17 @@ class Environment {
         this.allTogethers.add(name);
     }
 
-    public defineType(name: string, value: ValueType, extraProperties?: Record<string, ValueType>): void {
+    public defineType(name: string, value: ValueType, extraProperties?: Record<string, string>): void {
         if (this.isDefined(name)) throw new EnvironmentError(`Name ${name} is already taken!`);
 
-        this.types.set(name, new TypeValue(value, extraProperties));
+        this.types.set(
+            name,
+            new TypeValue(
+                value,
+                Object.keys(extraProperties || []) ? name : value,
+                extraProperties as Record<string, string>,
+            ),
+        );
         this.allTogethers.add(name);
     }
 
@@ -86,9 +93,9 @@ class Environment {
         return this.variables.get(name) || (this.parent?.getVariable(name) as [RuntimeValue, string, boolean]);
     }
 
-    public getType(name: string): any {
+    public getType(name: string): TypeValue {
         if (!this.isDefinedType(name)) throw new EnvironmentError(`Type ${name} is not defined!`);
-        return this.types.get(name) || this.parent?.getType(name);
+        return this.types.get(name) || (this.parent?.getType(name) as TypeValue);
     }
 
     public getFunction(name: string): FunctionValue | NativeFunctionValue {
