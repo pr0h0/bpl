@@ -88,12 +88,6 @@ export class ObjectValue extends RuntimeValue {
     }
 }
 
-export class CustomValue extends RuntimeValue {
-    constructor(public value: RuntimeValue, public typeOf: string) {
-        super(ValueType.CUSTOM);
-    }
-}
-
 export class TypeValue extends RuntimeValue {
     constructor(public value: ValueType, public valueDefinition: any) {
         super(ValueType.TYPE);

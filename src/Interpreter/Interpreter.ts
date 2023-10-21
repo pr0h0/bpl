@@ -33,11 +33,11 @@ import {
 import ExprType from '../Parser/ExprType';
 import {
     BooleanValue,
-    CustomValue,
     FunctionValue,
     NativeFunctionValue,
     NullValue,
     NumberValue,
+    ObjectValue,
     RuntimeValue,
     StringValue,
     TypeValue,
@@ -425,8 +425,8 @@ class Interpreter {
                     return new BooleanValue((variableValue[0] as BooleanValue).value);
                 case ValueType.NULL:
                     return new NullValue();
-                case ValueType.CUSTOM:
-                    return new CustomValue(variableValue[0], (variableValue[0] as CustomValue).typeOf);
+                case ValueType.OBJECT:
+                    return new ObjectValue((variableValue[0] as ObjectValue).value, variableValue[1]);
                 case ValueType.TYPE:
                     return new TypeValue(
                         (variableValue[0] as TypeValue).value,

@@ -9,7 +9,6 @@ enum ValueType {
 
     ARRAY = 'ARRAY',
     OBJECT = 'OBJECT',
-    CUSTOM = 'CUSTOM',
 
     VOID = 'VOID',
     ANY = 'ANY',

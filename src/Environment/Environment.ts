@@ -1,6 +1,6 @@
 import EnvironmentError from '../Errors/EnvironmentError';
 import PrimitiveTypes from '../Interpreter/PrimitiveTypes';
-import { CustomValue, FunctionValue, NativeFunctionValue, RuntimeValue, TypeValue } from '../Interpreter/Values';
+import { FunctionValue, NativeFunctionValue, ObjectValue, RuntimeValue, TypeValue } from '../Interpreter/Values';
 import ValueType from '../Interpreter/ValueType';
 import STLService from '../services/stl.service';
 
@@ -26,14 +26,14 @@ class Environment {
         if (Object.values(PrimitiveTypes).includes(name as PrimitiveTypes)) {
             throw new EnvironmentError(`Variable ${name} is already defined as a primitive type!`);
         }
-        if (value.type === ValueType.CUSTOM) {
-            const type = (value as CustomValue).typeOf;
+        if (value.type === ValueType.OBJECT) {
+            const type = (value as ObjectValue).typeOf;
             if (!this.isDefinedType(type)) throw new EnvironmentError(`Type ${type} is not defined!`);
         }
 
         let type = value.type;
-        if (type === ValueType.CUSTOM) {
-            type = (value as CustomValue).typeOf;
+        if (type === ValueType.OBJECT) {
+            type = (value as ObjectValue).typeOf;
         }
         this.variables.set(name, [value, type, isConst]);
         if (isConst) this.consts.add(name);
@@ -117,14 +117,14 @@ class Environment {
         if (Object.values(PrimitiveTypes).includes(name as PrimitiveTypes)) {
             throw new EnvironmentError(`Variable ${name} is already defined as a primitive type!`);
         }
-        if (value.type === ValueType.CUSTOM) {
-            const type = (value as CustomValue).typeOf;
+        if (value.type === ValueType.OBJECT) {
+            const type = (value as ObjectValue).typeOf;
             if (!this.isDefinedType(type)) throw new EnvironmentError(`Type ${type} is not defined!`);
         }
 
         let type = value.type;
-        if (type === ValueType.CUSTOM) {
-            type = (value as CustomValue).typeOf;
+        if (type === ValueType.OBJECT) {
+            type = (value as ObjectValue).typeOf;
         }
         if (this.variables.get(name)) {
             this.variables.set(name, [value, type, this.isConst(name)]);
