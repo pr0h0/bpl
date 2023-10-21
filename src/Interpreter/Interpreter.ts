@@ -115,7 +115,7 @@ class Interpreter {
             return this.evaluateDoWhileUntilStmt(expr);
         } else if (expr instanceof TypeDeclarationStmt) {
             return this.evaluateTypeDeclarationStmt(expr);
-        } else if(expr instanceof ObjectAccessExpr) {
+        } else if (expr instanceof ObjectAccessExpr) {
             return this.evaluateObjectAccessExpr(expr);
         }
 

@@ -238,7 +238,7 @@ class Parser {
             }
 
             if (this.peek(1).type === TokenType.OPEN_PAREN_TOKEN) return this.parseFunctionCall();
-            if(this.peek(1).type == TokenType.DOT_TOKEN) return this.parseObjectAccess();
+            if (this.peek(1).type == TokenType.DOT_TOKEN) return this.parseObjectAccess();
 
             return new IdentifierExpr(this.consume(TokenType.IDENTIFIER_TOKEN).value);
         }
@@ -256,7 +256,7 @@ class Parser {
     static parseTypeDeclaration(): Expr {
         this.consume(TokenType.IDENTIFIER_TOKEN);
         const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing type name');
-        this.consume(TokenType.ASSIGNMENT_TOKEN, 'Missing = after type name')
+        this.consume(TokenType.ASSIGNMENT_TOKEN, 'Missing = after type name');
         this.consume(TokenType.OPEN_CURLY_TOKEN, 'Missing { after type name');
         const fields: [Token, Token][] = [];
         while (this.tokens.length && this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
