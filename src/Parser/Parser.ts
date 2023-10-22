@@ -34,19 +34,20 @@ import {
 import ExprType from './ExprType';
 
 class Parser {
-    static tokens: Token[];
+    private tokens: Token[] = [];
+    private index: number = 0;
 
-    static parse(tokens: Token[]): Expr[] {
+    parse(tokens: Token[]): Expr[] {
         this.tokens = tokens;
         const stmts: Expr[] = [];
 
-        while (this.tokens.length) {
+        while (!this.isEOF()) {
             stmts.push(this.parseExpr());
         }
         return stmts;
     }
 
-    static parseExpr(): Expr {
+    parseExpr(): Expr {
         const expr = this.parseAssignment();
 
         this.optional(TokenType.SEMICOLON_TOKEN);
@@ -54,7 +55,7 @@ class Parser {
         return expr;
     }
 
-    static parseAssignment(): Expr {
+    parseAssignment(): Expr {
         const expr = this.parseTernary();
 
         if (this.optional(TokenType.ASSIGNMENT_TOKEN)) {
@@ -70,7 +71,7 @@ class Parser {
         return expr;
     }
 
-    static parseTernary(): Expr {
+    parseTernary(): Expr {
         let expr = this.parseLogical();
 
         if (this.optional(TokenType.QUESTION_MARK_TOKEN)) {
@@ -84,13 +85,10 @@ class Parser {
         return expr;
     }
 
-    static parseLogical(): Expr {
+    parseLogical(): Expr {
         let expr = this.parseComparison();
 
-        while (
-            this.tokens.length &&
-            (this.peek().type === TokenType.AND_TOKEN || this.peek().type === TokenType.OR_TOKEN)
-        ) {
+        while (!this.isEOF() && (this.peek().type === TokenType.AND_TOKEN || this.peek().type === TokenType.OR_TOKEN)) {
             const operator = this.consume(this.peek().type);
             const right = this.parseComparison();
             expr = new BinaryExpr(expr, operator, right);
@@ -99,11 +97,11 @@ class Parser {
         return expr;
     }
 
-    static parseComparison(): Expr {
+    parseComparison(): Expr {
         let expr = this.parseAddition();
 
         while (
-            (this.tokens.length && this.peek().type === TokenType.EQUAL_TOKEN) ||
+            (!this.isEOF() && this.peek().type === TokenType.EQUAL_TOKEN) ||
             this.peek().type === TokenType.NOT_EQUAL_TOKEN ||
             this.peek().type === TokenType.GREATER_THEN_TOKEN ||
             this.peek().type === TokenType.GREATER_OR_EQUAL_TOKEN ||
@@ -118,11 +116,11 @@ class Parser {
         return expr;
     }
 
-    static parseAddition(): Expr {
+    parseAddition(): Expr {
         let expr = this.parseMultiplication();
 
         while (
-            this.tokens.length &&
+            !this.isEOF() &&
             (this.peek().type === TokenType.PLUS_TOKEN || this.peek().type === TokenType.MINUS_TOKEN)
         ) {
             const operator = this.consume(this.peek().type);
@@ -133,11 +131,11 @@ class Parser {
         return expr;
     }
 
-    static parseMultiplication(): Expr {
+    parseMultiplication(): Expr {
         let expr = this.parseUnary();
 
         while (
-            this.tokens.length &&
+            !this.isEOF() &&
             (this.peek().type === TokenType.STAR_TOKEN ||
                 this.peek().type === TokenType.EXPONENT_TOKEN ||
                 this.peek().type === TokenType.SLASH_TOKEN ||
@@ -151,7 +149,7 @@ class Parser {
         return expr;
     }
 
-    static parseUnary(): Expr {
+    parseUnary(): Expr {
         const expr = this.parsePrimary();
 
         if (this.peek().type === TokenType.INCREMENT_TOKEN || this.peek().type === TokenType.DECREMENT_TOKEN) {
@@ -162,7 +160,7 @@ class Parser {
         return expr;
     }
 
-    static parsePrimary(): Expr {
+    parsePrimary(): Expr {
         const expr = this.peek();
         if (expr.type === TokenType.NUMBER_LITERAL_TOKEN) {
             return new NumberLiteralExpr(Number(this.consume(TokenType.NUMBER_LITERAL_TOKEN).value));
@@ -246,20 +244,20 @@ class Parser {
         throw new ParserError(`Expected a primary expression but got ${expr.type}`, expr);
     }
 
-    static parseObjectAccess(): Expr {
+    parseObjectAccess(): Expr {
         const name = this.consume(TokenType.IDENTIFIER_TOKEN);
         this.consume(TokenType.DOT_TOKEN);
         const field = this.consume(TokenType.IDENTIFIER_TOKEN);
         return new ObjectAccessExpr(new IdentifierExpr(name.value), field);
     }
 
-    static parseTypeDeclaration(): Expr {
+    parseTypeDeclaration(): Expr {
         this.consume(TokenType.IDENTIFIER_TOKEN);
         const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing type name');
         this.consume(TokenType.ASSIGNMENT_TOKEN, 'Missing = after type name');
         this.consume(TokenType.OPEN_CURLY_TOKEN, 'Missing { after type name');
         const fields: [Token, Token][] = [];
-        while (this.tokens.length && this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
+        while (!this.isEOF() && this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
             const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing field name');
             this.consume(TokenType.COLON_TOKEN, 'Missing : after field name');
             const type = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing type of field');
@@ -270,7 +268,7 @@ class Parser {
         return new TypeDeclarationStmt(name, fields);
     }
 
-    static parseWhileUntil(): WhileUntilStmt {
+    parseWhileUntil(): WhileUntilStmt {
         const type = this.consume(TokenType.IDENTIFIER_TOKEN);
         this.consume(TokenType.OPEN_PAREN_TOKEN, `Expected '(' after ${type.value}`);
         const condition = this.parseExpr();
@@ -283,7 +281,7 @@ class Parser {
         return new WhileUntilStmt(exprType, condition, failsafe, body);
     }
 
-    static parseDoWhileUntil(): DoWhileUntilStmt {
+    parseDoWhileUntil(): DoWhileUntilStmt {
         this.consume(TokenType.IDENTIFIER_TOKEN);
         const failsafe = this.peek().type === TokenType.OPEN_CURLY_TOKEN ? null : this.parseExpr();
 
@@ -298,7 +296,7 @@ class Parser {
         return new DoWhileUntilStmt(exprType, condition, failsafe, body);
     }
 
-    static parseTemplateLiteral(): TemplateLiteralExpr {
+    parseTemplateLiteral(): TemplateLiteralExpr {
         const expr = this.consume(TokenType.TEMPLATE_LITERAL_TOKEN);
         const value = expr.value;
 
@@ -327,17 +325,9 @@ class Parser {
                 }
 
                 const literalExpr = part.slice(0, end);
-                const tokens: Token[] = [];
-                Lexer.tokenize(literalExpr).forEach((token) => tokens.push(token));
+                const tokens: Token[] = new Lexer().tokenize(literalExpr);
 
-                const currentTokens = this.tokens;
-                this.tokens = tokens;
-
-                while (this.tokens.length) {
-                    exprs.push(this.parseExpr());
-                }
-
-                this.tokens = currentTokens;
+                exprs.push(...new Parser().parse(tokens));
 
                 exprs.push(new StringLiteralExpr(part.slice(end + 1)));
             }
@@ -347,14 +337,14 @@ class Parser {
         return new TemplateLiteralExpr([new StringLiteralExpr(value)]);
     }
 
-    static parseFunctionDeclaration(): FunctionDeclarationExpr {
+    parseFunctionDeclaration(): FunctionDeclarationExpr {
         this.consume(TokenType.IDENTIFIER_TOKEN);
         const name =
             this.optional(TokenType.IDENTIFIER_TOKEN) ||
             new Token(TokenType.IDENTIFIER_TOKEN, `anonymous_${this.peek().line}_${Date.now()}_${Math.random()}`, 0);
         this.consume(TokenType.OPEN_PAREN_TOKEN);
         const params: [Token, string][] = [];
-        while (this.tokens.length && this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
+        while (!this.isEOF() && this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
             const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing parameter name');
             this.consume(TokenType.COLON_TOKEN, 'Missing : after parameter name');
             const type = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing type of parameter');
@@ -374,12 +364,12 @@ class Parser {
         return new FunctionDeclarationExpr(name, params, body, typeOf);
     }
 
-    static parseFunctionCall(): Expr {
+    parseFunctionCall(): Expr {
         const name = this.consume(TokenType.IDENTIFIER_TOKEN);
         this.consume(TokenType.OPEN_PAREN_TOKEN, 'Missing ( after function name');
         const args: Expr[] = [];
 
-        while (this.tokens.length && this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
+        while (!this.isEOF() && this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
             args.push(this.parseExpr());
             this.optional(TokenType.COMMA_TOKEN);
         }
@@ -389,7 +379,7 @@ class Parser {
         return new FunctionCallExpr(name, args);
     }
 
-    static parseFor(): ForStmt {
+    parseFor(): ForStmt {
         this.consume(TokenType.IDENTIFIER_TOKEN);
         this.consume(TokenType.OPEN_PAREN_TOKEN, 'Missing ( after for');
         const initializer = this.peek().type === TokenType.SEMICOLON_TOKEN ? null : this.parseExpr();
@@ -404,7 +394,7 @@ class Parser {
         return new ForStmt(initializer, condition, increment, failsafe, body);
     }
 
-    static parseVariableDeclaration(): VariableDeclarationExpr {
+    parseVariableDeclaration(): VariableDeclarationExpr {
         const type = this.consume(TokenType.IDENTIFIER_TOKEN);
         const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing variable name');
         this.consume(TokenType.COLON_TOKEN, 'Missing : after variable name');
@@ -416,10 +406,10 @@ class Parser {
         return new VariableDeclarationExpr(name, typeOf, value, type.value === 'const');
     }
 
-    static parseObjectLiteral(): Expr {
+    parseObjectLiteral(): Expr {
         this.consume(TokenType.OPEN_CURLY_TOKEN);
         const fields: [Token, Expr][] = [];
-        while (this.tokens.length && this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
+        while (!this.isEOF() && this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
             const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing field name');
             this.consume(TokenType.COLON_TOKEN, 'Missing : after field name');
             const value = this.parseExpr();
@@ -430,7 +420,7 @@ class Parser {
         return new ObjectLiteralExpr(fields);
     }
 
-    static parseIf(): IfStmt {
+    parseIf(): IfStmt {
         this.consume(TokenType.IDENTIFIER_TOKEN);
         this.consume(TokenType.OPEN_PAREN_TOKEN, 'Missing ( after if');
         const condition = this.parseExpr();
@@ -449,11 +439,11 @@ class Parser {
         return new IfStmt(condition, thenBranch, elseBranch);
     }
 
-    static parseBlock(): BlockStmt {
+    parseBlock(): BlockStmt {
         this.consume(TokenType.OPEN_CURLY_TOKEN, "Missing { on block's start");
         const stmts: Expr[] = [];
 
-        while (this.tokens.length && this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
+        while (!this.isEOF() && this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
             stmts.push(this.parseExpr());
         }
 
@@ -461,29 +451,33 @@ class Parser {
         return new BlockStmt(stmts);
     }
 
-    static parseGrouping(): Expr {
+    parseGrouping(): Expr {
         this.consume(TokenType.OPEN_PAREN_TOKEN);
         const expr = this.parseExpr();
         this.consume(TokenType.CLOSE_PAREN_TOKEN, 'Missing closing parenthesis )');
         return expr;
     }
 
-    static peek(index = 0): Token {
-        if (this.tokens.length <= index)
+    peek(index = 0): Token {
+        if (this.tokens.length <= this.index + index)
             return new Token(TokenType.EOF_TOKEN, '', this.tokens[this.tokens.length - 1]?.line ?? 0);
-        return this.tokens[index];
+        return this.tokens[this.index + index];
     }
 
-    static optional(type: TokenType): Token | null {
+    optional(type: TokenType): Token | null {
         if (this.peek().type === type) {
-            return this.tokens.shift() as Token;
+            return this.tokens[this.index++] as Token;
         }
         return null;
     }
 
-    static consume(type: TokenType, message?: string): Token {
-        if (this.peek().type == type) return this.tokens.shift() as Token;
+    consume(type: TokenType, message?: string): Token {
+        if (this.peek().type == type) return this.optional(type) as Token;
         throw new ParserError(message || `Expected ${type} but got ${this.peek().type}}`, this.peek());
+    }
+
+    isEOF(): boolean {
+        return this.peek().type === TokenType.EOF_TOKEN || this.index >= this.tokens.length;
     }
 }
 

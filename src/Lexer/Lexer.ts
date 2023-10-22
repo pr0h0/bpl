@@ -3,20 +3,25 @@ import Token from './Token';
 import TokenType from './TokenType';
 
 class Lexer {
-    private static tokens: string[] = [];
-    private static line: number = 1;
+    private tokens: string[] = [];
+    private line: number = 1;
+    private index: number = 0;
 
-    public static tokenize(input: string): Token[] {
+    public tokenize(input: string): Token[] {
         this.tokens = input.split('');
         this.line = 1;
 
         return this.parseTokens();
     }
 
-    private static parseTokens(): Token[] {
+    private isEOF(): boolean {
+        return this.index >= this.tokens.length;
+    }
+
+    private parseTokens(): Token[] {
         const tokens: Token[] = [];
 
-        while (this.tokens.length > 0) {
+        while (!this.isEOF()) {
             const token: Token | null = this.parseToken();
 
             if (token !== null) {
@@ -27,7 +32,7 @@ class Lexer {
         tokens.push(new Token(TokenType.EOF_TOKEN, 'EOF', this.line));
         return tokens;
     }
-    private static parseToken(): Token | null {
+    private parseToken(): Token | null {
         const token = this.consume();
         if (token === '\n') {
             this.line++;
@@ -70,10 +75,10 @@ class Lexer {
         throw new LexerError(`Unexpected token '${token}'`, this.line);
     }
 
-    static parseTemplateLiteralToken(token: string): Token | null {
+    parseTemplateLiteralToken(token: string): Token | null {
         let openCount = 1;
         let str = '';
-        while (this.tokens.length) {
+        while (!this.isEOF()) {
             if (this.seek() === token) {
                 openCount--;
                 if (openCount === 0) break;
@@ -88,7 +93,7 @@ class Lexer {
         return new Token(TokenType.TEMPLATE_LITERAL_TOKEN, str, this.line);
     }
 
-    static parseIdentifierToken(token: string): Token | null {
+    parseIdentifierToken(token: string): Token | null {
         let identifier = token;
         while (/[a-zA-Z0-9_]/.test(this.seek() || '')) {
             identifier += this.consume();
@@ -97,9 +102,9 @@ class Lexer {
         return new Token(TokenType.IDENTIFIER_TOKEN, identifier, this.line);
     }
 
-    static parseNumberLiteralToken(token: string): Token | null {
+    parseNumberLiteralToken(token: string): Token | null {
         let number = token;
-        while (this.tokens.length && '0123456789.'.includes(this.seek())) {
+        while (!this.isEOF() && '0123456789.'.includes(this.seek())) {
             number += this.consume();
         }
 
@@ -108,57 +113,56 @@ class Lexer {
         if (isNaN(parsedNumber)) throw new LexerError(`Invalid number literal: '${number}'`, this.line);
         return new Token(TokenType.NUMBER_LITERAL_TOKEN, number, this.line);
     }
-    static parseStringLiteralToken(token: string): Token | null {
+    parseStringLiteralToken(token: string): Token | null {
         let str = '';
         while (
-            this.tokens.length &&
+            !this.isEOF() &&
             (this.seek() !== token || (this.seek() === token && str.length && str.endsWith('\\')))
         ) {
             if (this.seek() === '\n') throw new LexerError('Unterminated string literal', this.line);
             str += this.consume();
         }
 
-        if (this.tokens.length === 0 && !str.endsWith(token))
-            throw new LexerError('Unterminated string literal', this.line);
+        if (this.isEOF() && !str.endsWith(token)) throw new LexerError('Unterminated string literal', this.line);
         this.consume();
         return new Token(TokenType.STRING_LITERAL_TOKEN, str, this.line);
     }
 
-    static parseLessToken(token: string): Token | null {
+    parseLessToken(token: string): Token | null {
         if (this.seek() === '=') {
             return new Token(TokenType.LESS_OR_EQUAL_TOKEN, token + this.consume(), this.line);
         }
         return new Token(TokenType.LESS_THEN_TOKEN, token, this.line);
     }
-    static parseGreaterToken(token: string): Token | null {
+    parseGreaterToken(token: string): Token | null {
         if (this.seek() === '=') {
             return new Token(TokenType.GREATER_OR_EQUAL_TOKEN, token + this.consume(), this.line);
         }
         return new Token(TokenType.GREATER_THEN_TOKEN, token, this.line);
     }
-    static parseAndToken(token: string): Token | null {
+    parseAndToken(token: string): Token | null {
         if (this.seek() === '&') {
             return new Token(TokenType.AND_TOKEN, token + this.consume(), this.line);
         }
         throw new LexerError("Unexpected single '&' token", this.line);
     }
-    static parseOrToken(token: string): Token | null {
+    parseOrToken(token: string): Token | null {
         if (this.seek() === '|') {
             return new Token(TokenType.OR_TOKEN, token + this.consume(), this.line);
         }
         throw new LexerError("Unexpected single '|' token", this.line);
     }
-    static parseEqualToken(token: string): Token | null {
+    parseEqualToken(token: string): Token | null {
         if (this.seek() === '=') {
             return new Token(TokenType.EQUAL_TOKEN, token + this.consume(), this.line);
         }
         return new Token(TokenType.ASSIGNMENT_TOKEN, token, this.line);
     }
-    static parseSlashToken(token: string): Token | null {
+    parseSlashToken(token: string): Token | null {
         // Single line comment
         if (this.seek() === '/') {
             this.consume();
-            while (this.tokens.length && this.seek() !== '\n') {
+            while (!this.isEOF() && this.seek() !== '\n') {
                 this.consume();
             }
             this.consume(); // Consume the \n
@@ -168,7 +172,7 @@ class Lexer {
         // Multi line comment
         if (this.seek() === '*') {
             this.consume();
-            while (this.tokens.length) {
+            while (!this.isEOF()) {
                 if (this.seek() === '\n') this.line++;
                 if (this.seek() === '*' && this.seek(1) === '/') break;
                 this.consume();
@@ -182,13 +186,13 @@ class Lexer {
         }
         return new Token(TokenType.SLASH_TOKEN, token, this.line);
     }
-    static parseModuloToken(token: string): Token | null {
+    parseModuloToken(token: string): Token | null {
         if (this.seek() === '=') {
             return new Token(TokenType.MODULO_EQUAL_TOKEN, token + this.consume(), this.line);
         }
         return new Token(TokenType.MODULO_TOKEN, token, this.line);
     }
-    static parseStarToken(token: string): Token | null {
+    parseStarToken(token: string): Token | null {
         if (this.seek() === '=') {
             return new Token(TokenType.STAR_EQUAL_TOKEN, token + this.consume(), this.line);
         }
@@ -197,7 +201,7 @@ class Lexer {
         }
         return new Token(TokenType.STAR_TOKEN, token, this.line);
     }
-    static parseMinusToken(token: string): Token | null {
+    parseMinusToken(token: string): Token | null {
         if (this.seek() === '-') {
             return new Token(TokenType.DECREMENT_TOKEN, token + this.consume(), this.line);
         }
@@ -206,13 +210,13 @@ class Lexer {
         }
         return new Token(TokenType.MINUS_TOKEN, token, this.line);
     }
-    static parseBangToken(token: string): Token | null {
+    parseBangToken(token: string): Token | null {
         if (this.seek() === '=') {
             return new Token(TokenType.NOT_EQUAL_TOKEN, token + this.consume(), this.line);
         }
         return new Token(TokenType.BANG_TOKEN, token, this.line);
     }
-    static parsePlusToken(token: string): Token | null {
+    parsePlusToken(token: string): Token | null {
         if (this.seek() === '+') {
             return new Token(TokenType.INCREMENT_TOKEN, token + this.consume(), this.line);
         }
@@ -222,12 +226,12 @@ class Lexer {
         return new Token(TokenType.PLUS_TOKEN, token, this.line);
     }
 
-    private static seek(index: number = 0): string {
-        return this.tokens[index];
+    private seek(index: number = 0): string {
+        return this.tokens[this.index + index];
     }
-    private static consume(): string {
-        if (this.tokens.length === 0) throw new LexerError('Unexpected EOF', this.line);
-        return this.tokens.shift() as string;
+    private consume(): string {
+        if (this.isEOF()) throw new LexerError('Unexpected EOF', this.line);
+        return this.tokens[this.index++];
     }
 }
 

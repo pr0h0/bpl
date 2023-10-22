@@ -18,7 +18,7 @@ export default function flow(
 ): void {
     let tokens: Token[] = [];
     try {
-        tokens = Lexer.tokenize(content);
+        tokens = new Lexer().tokenize(content);
 
         if (debug.showTokens) {
             for (const token of tokens) {
@@ -26,21 +26,31 @@ export default function flow(
             }
         }
     } catch (error: unknown) {
-        console.error((error as Error | LexerError).toString());
+        if (error instanceof LexerError) {
+            console.error(error.toString());
+        } else {
+            console.error((error as Error).message);
+            console.error((error as Error).stack);
+        }
         return;
     }
 
     let ast: Expr[] | null = null;
 
     try {
-        ast = Parser.parse(tokens);
+        ast = new Parser().parse(tokens);
         if (debug.showExpr) {
             for (const stmt of ast) {
                 console.dir(stmt, { depth: null });
             }
         }
     } catch (error: unknown) {
-        console.error((error as Error | ParserError).toString());
+        if (error instanceof ParserError) {
+            console.error(error.toString());
+        } else {
+            console.error((error as Error).message);
+            console.error((error as Error).stack);
+        }
         return;
     }
 
@@ -53,8 +63,13 @@ export default function flow(
                 console.dir(value, { depth: null });
             }
         }
-    } catch (e) {
-        console.error(((e as Error) || InterpreterError).toString());
+    } catch (error: unknown) {
+        if (error instanceof InterpreterError) {
+            console.error(error.toString());
+        } else {
+            console.error((error as Error).message);
+            console.error((error as Error).stack);
+        }
         return;
     }
 }
