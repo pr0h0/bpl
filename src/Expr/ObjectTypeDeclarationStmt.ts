@@ -7,7 +7,7 @@ import PrintService from '../services/print.service';
 import ExprType from '../Parser/ExprType';
 import { Expr } from './Expr';
 
-export class TypeDeclarationStmt extends Expr {
+export class ObjectTypeDeclarationStmt extends Expr {
     constructor(public name: Token, public members: [Token, Token][]) {
         super(ExprType.TYPE_DECLARATION_STMT);
     }

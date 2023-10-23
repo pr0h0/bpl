@@ -2,7 +2,7 @@ const Interpreter = require('../dist/Interpreter/Interpreter').default;
 const Environment = require('../dist/Environment/Environment').default;
 const Values = require('../dist/Interpreter/Values');
 const ValueType = require('../dist/Interpreter/ValueType').default;
-const Expr = require('../dist/Parser/Expr');
+const Expr = require('../dist/Expr/index');
 
 describe('Interpreter', () => {
     let interpreter;

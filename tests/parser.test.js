@@ -1,7 +1,7 @@
 const Parser = require('../dist/Parser/Parser').default;
 const Token = require('../dist/Lexer/Token').default;
 const TokenType = require('../dist/Lexer/TokenType').default;
-const Expr = require('../dist/Parser/Expr');
+const Expr = require('../dist/Expr/index');
 
 describe('Parser', () => {
     test('should parse a simple expression', () => {

@@ -1,10 +1,11 @@
-import InterpreterError from '../Errors/InterpreterError';
 import Interpreter from '../Interpreter/Interpreter';
 import { RuntimeValue, VoidValue } from '../Interpreter/Values';
 import Token from '../Lexer/Token';
 import PrintService from '../services/print.service';
 import ExprType from '../Parser/ExprType';
 import { Expr } from './Expr';
+import { VariableDeclarationExpr } from './VariableDeclarationExpr';
+import TokenType from '../Lexer/TokenType';
 
 export class AssignmentExpr extends Expr {
     constructor(public name: Token, public value: Expr) {
@@ -21,9 +22,13 @@ export class AssignmentExpr extends Expr {
 
         const variable = interpreter.environment.getVariable(variableName);
 
-        if (value.type !== variable[1]) {
-            throw new InterpreterError(`Invalid assignment type: ${value.type} expected ${variable[1]}`, this);
-        }
+        VariableDeclarationExpr.verifyType(
+            interpreter,
+            value,
+            value.type,
+            new Token(TokenType.IDENTIFIER_TOKEN, variable[1]),
+            this,
+        );
 
         interpreter.environment.setVariable(variableName, value);
         return (this.parsedValue = value);

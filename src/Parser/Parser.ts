@@ -1,5 +1,7 @@
 import ParserError from '../Errors/ParserError';
 import {
+    ArrayLiteralExpr,
+    ArrayTypeDeclarationStmt,
     AssignmentExpr,
     BinaryExpr,
     BlockStmt,
@@ -18,11 +20,13 @@ import {
     NumberLiteralExpr,
     ObjectAccessExpr,
     ObjectLiteralExpr,
+    ObjectTypeDeclarationStmt,
     ReturnStmt,
     StringLiteralExpr,
     TemplateLiteralExpr,
     TernaryExpr,
-    TypeDeclarationStmt,
+    TupleLiteralExpr,
+    TupleTypeDeclarationStmt,
     UnaryExpr,
     VariableDeclarationExpr,
     WhileUntilStmt,
@@ -175,11 +179,15 @@ class Parser {
         }
 
         if (expr.type === TokenType.OPEN_PAREN_TOKEN) {
-            return this.parseGrouping();
+            return this.parseGroupingOrTupleLiteral();
         }
 
         if (expr.type === TokenType.OPEN_CURLY_TOKEN) {
             return this.parseObjectLiteral();
+        }
+
+        if (expr.type === TokenType.OPEN_BRACKET_TOKEN) {
+            return this.parseArrayLiteral();
         }
 
         if (expr.type === TokenType.EOF_TOKEN) {
@@ -244,6 +252,17 @@ class Parser {
         throw new ParserError(`Expected a primary expression but got ${expr.type}`, expr);
     }
 
+    parseArrayLiteral(): Expr {
+        this.consume(TokenType.OPEN_BRACKET_TOKEN);
+        const values: Expr[] = [];
+        while (!this.isEOF() && this.peek().type !== TokenType.CLOSE_BRACKET_TOKEN) {
+            values.push(this.parseExpr());
+            this.optional(TokenType.COMMA_TOKEN);
+        }
+        this.consume(TokenType.CLOSE_BRACKET_TOKEN, 'Missing ] after array values');
+        return new ArrayLiteralExpr(values);
+    }
+
     parseObjectAccess(): Expr {
         const name = this.consume(TokenType.IDENTIFIER_TOKEN);
         this.consume(TokenType.DOT_TOKEN);
@@ -254,7 +273,41 @@ class Parser {
     parseTypeDeclaration(): Expr {
         this.consume(TokenType.IDENTIFIER_TOKEN);
         const name = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing type name');
-        this.consume(TokenType.ASSIGNMENT_TOKEN, 'Missing = after type name');
+        if (this.peek().type === TokenType.OPEN_CURLY_TOKEN) {
+            return this.parseObjectTypeDeclaration(name);
+        }
+        if (this.peek().type === TokenType.OPEN_BRACKET_TOKEN) {
+            return this.parseArrayTypeDeclaration(name);
+        }
+
+        if (this.peek().type === TokenType.OPEN_PAREN_TOKEN) {
+            return this.parseTupleTypeDeclaration(name);
+        }
+
+        throw new ParserError('Invalid type declaration', this.peek());
+    }
+
+    private parseTupleTypeDeclaration(name: Token) {
+        this.consume(TokenType.OPEN_PAREN_TOKEN, 'Missing ( after type name');
+        const types: Token[] = [];
+        while (!this.isEOF() && this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
+            const type = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing type');
+            types.push(type);
+            this.optional(TokenType.COMMA_TOKEN);
+        }
+        this.consume(TokenType.CLOSE_PAREN_TOKEN, 'Missing ) after type parameters');
+        if (types.length < 2) throw new ParserError('Tuple must have at least 2 types', this.peek());
+        return new TupleTypeDeclarationStmt(name, types);
+    }
+
+    private parseArrayTypeDeclaration(name: Token) {
+        this.consume(TokenType.OPEN_BRACKET_TOKEN, 'Missing [ after type name');
+        const type = this.consume(TokenType.IDENTIFIER_TOKEN, 'Missing type of array');
+        this.consume(TokenType.CLOSE_BRACKET_TOKEN, 'Missing ] after type of array');
+        return new ArrayTypeDeclarationStmt(name, type);
+    }
+
+    private parseObjectTypeDeclaration(name: Token) {
         this.consume(TokenType.OPEN_CURLY_TOKEN, 'Missing { after type name');
         const fields: [Token, Token][] = [];
         while (!this.isEOF() && this.peek().type !== TokenType.CLOSE_CURLY_TOKEN) {
@@ -265,7 +318,7 @@ class Parser {
             this.optional(TokenType.COMMA_TOKEN);
         }
         this.consume(TokenType.CLOSE_CURLY_TOKEN, 'Missing } after type fields');
-        return new TypeDeclarationStmt(name, fields);
+        return new ObjectTypeDeclarationStmt(name, fields);
     }
 
     parseWhileUntil(): WhileUntilStmt {
@@ -451,9 +504,18 @@ class Parser {
         return new BlockStmt(stmts);
     }
 
-    parseGrouping(): Expr {
+    parseGroupingOrTupleLiteral(): Expr {
         this.consume(TokenType.OPEN_PAREN_TOKEN);
         const expr = this.parseExpr();
+        if (this.peek().type === TokenType.COMMA_TOKEN) {
+            const values: Expr[] = [expr];
+            while (!this.isEOF() && this.peek().type !== TokenType.CLOSE_PAREN_TOKEN) {
+                this.consume(TokenType.COMMA_TOKEN);
+                values.push(this.parseExpr());
+            }
+            this.consume(TokenType.CLOSE_PAREN_TOKEN, 'Missing closing parenthesis )');
+            return new TupleLiteralExpr(values);
+        }
         this.consume(TokenType.CLOSE_PAREN_TOKEN, 'Missing closing parenthesis )');
         return expr;
     }

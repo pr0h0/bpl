@@ -2,14 +2,10 @@ import InterpreterError from '../Errors/InterpreterError';
 import Interpreter from '../Interpreter/Interpreter';
 import ValueType from '../Interpreter/ValueType';
 import {
-    BooleanValue,
     FunctionValue,
     NativeFunctionValue,
-    NullValue,
-    NumberValue,
     ObjectValue,
     RuntimeValue,
-    StringValue,
     TypeValue,
     VoidValue,
 } from '../Interpreter/Values';
@@ -46,38 +42,25 @@ export class IdentifierExpr extends Expr {
         if (flag === 'variable' && variableValue !== null) {
             switch (variableValue[0].type) {
                 case ValueType.NUMBER:
-                    return (this.parsedValue = new NumberValue((variableValue[0] as NumberValue).value));
+                    return (this.parsedValue = variableValue[0]);
                 case ValueType.STRING:
-                    return (this.parsedValue = new StringValue((variableValue[0] as StringValue).value));
+                    return (this.parsedValue = variableValue[0]);
                 case ValueType.BOOL:
-                    return (this.parsedValue = new BooleanValue((variableValue[0] as BooleanValue).value));
+                    return (this.parsedValue = variableValue[0]);
                 case ValueType.NULL:
-                    return (this.parsedValue = new NullValue());
+                    return (this.parsedValue = variableValue[0]);
                 case ValueType.OBJECT:
-                    return (this.parsedValue = new ObjectValue(
-                        (variableValue[0] as ObjectValue).value,
-                        variableValue[1],
-                    ));
+                    return (this.parsedValue = variableValue[0]);
                 case ValueType.TYPE:
-                    return (this.parsedValue = new TypeValue(
-                        (variableValue[0] as TypeValue).value,
-                        variableValue[1],
-                        (variableValue[0] as TypeValue).valueDefinition,
-                    ));
+                    return (this.parsedValue = variableValue[0]);
                 case ValueType.FUNC:
-                    return (this.parsedValue = new FunctionValue(
-                        (variableValue[0] as FunctionValue).name,
-                        (variableValue[0] as FunctionValue).params,
-                        (variableValue[0] as FunctionValue).body,
-                        (variableValue[0] as FunctionValue).typeOf,
-                    ));
+                    return (this.parsedValue = variableValue[0]);
                 case ValueType.NATIVE_FUNCTION:
-                    return (this.parsedValue = new NativeFunctionValue(
-                        (variableValue[0] as NativeFunctionValue).name,
-                        (variableValue[0] as NativeFunctionValue).params,
-                        (variableValue[0] as NativeFunctionValue).body,
-                        (variableValue[0] as NativeFunctionValue).typeOf,
-                    ));
+                    return (this.parsedValue = variableValue[0]);
+                case ValueType.ARRAY:
+                    return (this.parsedValue = variableValue[0]);
+                case ValueType.TUPLE:
+                    return (this.parsedValue = variableValue[0]);
                 default: {
                     const type = variableValue[1];
                     if (interpreter.environment.isDefinedType(type)) {

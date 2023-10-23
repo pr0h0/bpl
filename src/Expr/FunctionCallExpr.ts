@@ -52,7 +52,8 @@ export class FunctionCallExpr extends Expr {
                             (func.params[index][1] !== ValueType.OBJECT && func.params[index][1] !== value.type) ||
                             (func.params[index][1] === ValueType.OBJECT &&
                                 (value as ObjectValue).typeOf !== func.params[index][1] &&
-                                interpreter.verifyObject(value as ObjectValue, func.params[index][1]) !== undefined)))
+                                ObjectValue.verifyObject(interpreter, value as ObjectValue, func.params[index][1]) !==
+                                    undefined)))
                 ) {
                     throw new InterpreterError(
                         `Invalid argument type: ${value.type} expected ${func.params[index][1]}`,
@@ -89,7 +90,7 @@ export class FunctionCallExpr extends Expr {
                     (err.value.type !== ValueType.OBJECT && returnType !== err.value.type) ||
                     (err.value.type === ValueType.OBJECT &&
                         (err.value as ObjectValue).typeOf !== returnType &&
-                        interpreter.verifyObject(err.value as ObjectValue, returnType) !== undefined)
+                        ObjectValue.verifyObject(interpreter, err.value as ObjectValue, returnType) !== undefined)
                 )
                     throw new InterpreterError(
                         `Invalid return type: ${err.value.type}, but expected ${returnType}`,
