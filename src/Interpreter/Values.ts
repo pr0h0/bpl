@@ -1,6 +1,6 @@
 import Environment from '../Environment/Environment';
 import Token from '../Lexer/Token';
-import { BlockStmt } from '../Parser/Expr';
+import { BlockStmt } from '../Expr/BlockStmt';
 import ValueType from './ValueType';
 
 export class RuntimeValue {

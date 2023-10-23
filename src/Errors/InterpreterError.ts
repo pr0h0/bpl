@@ -1,4 +1,4 @@
-import { Expr } from '../Parser/Expr';
+import { Expr } from '../Expr/Expr';
 
 class InterpreterError extends Error {
     constructor(message: string, expr: Expr | null) {

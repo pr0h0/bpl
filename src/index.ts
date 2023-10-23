@@ -4,7 +4,7 @@ import ParserError from './Errors/ParserError';
 import Interpreter from './Interpreter/Interpreter';
 import Lexer from './Lexer/Lexer';
 import Token from './Lexer/Token';
-import { Expr } from './Parser/Expr';
+import { Expr } from './Expr/Expr';
 import Parser from './Parser/Parser';
 
 export default function flow(

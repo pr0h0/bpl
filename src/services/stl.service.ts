@@ -179,7 +179,7 @@ class STLService {
 
     public static populateWithSTLVariables(environment: Environment): void {
         environment.defineVariable('PI', new NumberValue(Math.PI), true);
-        environment.defineVariable('version', new StringValue('0.0.1'), true);
+        environment.defineVariable('version', new StringValue('0.1.0'), true);
     }
 }
 

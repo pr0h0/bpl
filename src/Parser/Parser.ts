@@ -1,8 +1,4 @@
 import ParserError from '../Errors/ParserError';
-import ValueType from '../Interpreter/ValueType';
-import Lexer from '../Lexer/Lexer';
-import Token from '../Lexer/Token';
-import TokenType from '../Lexer/TokenType';
 import {
     AssignmentExpr,
     BinaryExpr,
@@ -30,7 +26,11 @@ import {
     UnaryExpr,
     VariableDeclarationExpr,
     WhileUntilStmt,
-} from './Expr';
+} from '../Expr';
+import ValueType from '../Interpreter/ValueType';
+import Lexer from '../Lexer/Lexer';
+import Token from '../Lexer/Token';
+import TokenType from '../Lexer/TokenType';
 import ExprType from './ExprType';
 
 class Parser {
