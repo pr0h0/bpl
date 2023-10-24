@@ -3,10 +3,7 @@ Planned features:
 -   [ ] Refactor code
 -   [ ] Add more tests
 -   [ ] Upgrade operators between types
--   [ ] Add support for arrays
--   [ ] Add support for tuples
 -   [ ] Upgrade current STL
--   [ ] Add a way to add a new type
 -   [ ] Add support for operator overloading
 -   [ ] Add support for generics
 -   [ ] Add a way to do export from the file
@@ -18,6 +15,9 @@ Planned features:
 
 Done features:
 
+-   [x] Add support for arrays
+-   [x] Add support for tuples
+-   [x] Add a way to add a new type
 -   [x] Add support for anonymous functions
 -   [x] Add a way to pass function as a argument
 -   [x] Add a way to return function from a function

@@ -2,8 +2,8 @@ import InterpreterError from '../Errors/InterpreterError';
 import Interpreter from '../Interpreter/Interpreter';
 import { ObjectValue, RuntimeValue, VoidValue } from '../Interpreter/Values';
 import Token from '../Lexer/Token';
-import PrintService from '../services/print.service';
 import ExprType from '../Parser/ExprType';
+import PrintService from '../services/print.service';
 import { Expr } from './Expr';
 
 export class ObjectAccessExpr extends Expr {
@@ -21,8 +21,7 @@ export class ObjectAccessExpr extends Expr {
         if (!object.value.has(property)) {
             throw new InterpreterError(`Invalid property access: ${property}`, this);
         }
-        this.parsedValue = object.value.get(property) as RuntimeValue;
-        return this.parsedValue;
+        return (this.parsedValue = object.value.get(property) as RuntimeValue);
     }
 
     public override toString(): string {

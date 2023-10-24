@@ -4,6 +4,7 @@ import InputService from './services/input.service';
 
 async function main() {
     console.log('Welcome to the BPL: "Best Programing Language"');
+    console.log("Enter '#help' to see the list of commands.");
 
     const interpreter = new Interpreter();
     let showTokens = false;

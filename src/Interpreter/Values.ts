@@ -106,7 +106,7 @@ export class ArrayValue extends RuntimeValue {
 }
 
 export class TupleValue extends RuntimeValue {
-    constructor(public value: RuntimeValue[], public typeOf: string[]) {
+    constructor(public value: RuntimeValue[], public typeOf: string | string[]) {
         super(ValueType.TUPLE);
     }
     static verifyTuple(interpreter: Interpreter, value: TupleValue, type: string) {

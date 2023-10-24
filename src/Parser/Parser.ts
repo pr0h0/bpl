@@ -1,5 +1,6 @@
 import ParserError from '../Errors/ParserError';
 import {
+    ArrayAccessExpr,
     ArrayLiteralExpr,
     ArrayTypeDeclarationStmt,
     AssignmentExpr,
@@ -65,8 +66,8 @@ class Parser {
         if (this.optional(TokenType.ASSIGNMENT_TOKEN)) {
             const value = this.parseTernary();
 
-            if (expr instanceof IdentifierExpr) {
-                return new AssignmentExpr(new Token(TokenType.IDENTIFIER_TOKEN, expr.value), value);
+            if (expr instanceof IdentifierExpr || expr instanceof ArrayAccessExpr || expr instanceof ObjectAccessExpr) {
+                return new AssignmentExpr(expr, value);
             }
 
             throw new ParserError('Invalid assignment target', expr as unknown as Token);
@@ -245,11 +246,20 @@ class Parser {
 
             if (this.peek(1).type === TokenType.OPEN_PAREN_TOKEN) return this.parseFunctionCall();
             if (this.peek(1).type == TokenType.DOT_TOKEN) return this.parseObjectAccess();
+            if (this.peek(1).type === TokenType.OPEN_BRACKET_TOKEN) return this.parseArrayAccess();
 
             return new IdentifierExpr(this.consume(TokenType.IDENTIFIER_TOKEN).value);
         }
 
         throw new ParserError(`Expected a primary expression but got ${expr.type}`, expr);
+    }
+
+    parseArrayAccess(): Expr {
+        const name = this.consume(TokenType.IDENTIFIER_TOKEN);
+        this.consume(TokenType.OPEN_BRACKET_TOKEN);
+        const index = this.parseExpr();
+        this.consume(TokenType.CLOSE_BRACKET_TOKEN);
+        return new ArrayAccessExpr(name.value, index);
     }
 
     parseArrayLiteral(): Expr {

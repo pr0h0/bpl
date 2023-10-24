@@ -1,3 +1,4 @@
+export { ArrayAccessExpr } from './ArrayAccessExpr';
 export { ArrayLiteralExpr } from './ArrayLiteralExpr';
 export { ArrayTypeDeclarationStmt } from './ArrayTyprDeclarationStmt';
 export { AssignmentExpr } from './AssignmentExpr';

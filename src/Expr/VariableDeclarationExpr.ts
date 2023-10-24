@@ -1,10 +1,10 @@
 import InterpreterError from '../Errors/InterpreterError';
 import Interpreter from '../Interpreter/Interpreter';
-import ValueType from '../Interpreter/ValueType';
 import { ArrayValue, NullValue, ObjectValue, RuntimeValue, TupleValue, VoidValue } from '../Interpreter/Values';
+import ValueType from '../Interpreter/ValueType';
 import Token from '../Lexer/Token';
-import PrintService from '../services/print.service';
 import ExprType from '../Parser/ExprType';
+import PrintService from '../services/print.service';
 import { Expr } from './Expr';
 
 export class VariableDeclarationExpr extends Expr {
@@ -40,7 +40,7 @@ export class VariableDeclarationExpr extends Expr {
         if (!interpreter.environment.isDefinedType(type))
             throw new InterpreterError(`Type ${type} is not defined!`, expr);
         if (value instanceof ObjectValue) {
-            ObjectValue.verifyObject(interpreter, value, type);
+            ObjectValue.verifyObject(interpreter, value, typeOf.value);
             value.typeOf = type;
             return;
         }
@@ -51,10 +51,11 @@ export class VariableDeclarationExpr extends Expr {
         }
         if (value instanceof TupleValue) {
             TupleValue.verifyTuple(interpreter, value, type);
+            value.typeOf = type;
             return;
         }
-        if (value.type !== typeOf.value) {
-            throw new InterpreterError(`Invalid variable type: ${value.type} expected ${typeOf.value}`, expr);
+        if (value.type !== type) {
+            throw new InterpreterError(`Invalid variable type: ${value.type} expected ${type}`, expr);
         }
     }
 }
