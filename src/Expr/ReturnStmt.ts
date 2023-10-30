@@ -15,7 +15,7 @@ export class ReturnStmt extends Expr {
     public override isEvaluateImplemented: boolean = true;
 
     public override evaluate(interpreter: Interpreter): RuntimeValue {
-        const value = interpreter.evaluateExpr(this.value);
+        const value = this.value.evaluate(interpreter);
         this.parsedValue = value;
         throw new ReturnStatement(value);
     }

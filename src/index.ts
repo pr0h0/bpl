@@ -32,6 +32,7 @@ export default function flow(
             console.error((error as Error).message);
             console.error((error as Error).stack);
         }
+        if (!cliInterpreter) process.exit(1);
         return;
     }
 
@@ -51,6 +52,7 @@ export default function flow(
             console.error((error as Error).message);
             console.error((error as Error).stack);
         }
+        if (!cliInterpreter) process.exit(1);
         return;
     }
 
@@ -70,6 +72,7 @@ export default function flow(
             console.error((error as Error).message);
             console.error((error as Error).stack);
         }
+        if (!cliInterpreter) process.exit(1);
         return;
     }
 }

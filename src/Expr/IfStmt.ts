@@ -17,7 +17,7 @@ export class IfStmt extends Expr {
     public override isEvaluateImplemented: boolean = true;
 
     public override evaluate(interpreter: Interpreter): RuntimeValue {
-        const condition = interpreter.evaluateExpr(this.condition) as BooleanValue;
+        const condition = this.condition.evaluate(interpreter) as BooleanValue;
         if (condition.type !== ValueType.BOOL) {
             throw new InterpreterError(`Invalid if condition type: ${condition.type}`, this);
         }

@@ -17,8 +17,8 @@ export class BinaryExpr extends Expr {
     public override isEvaluateImplemented: boolean = true;
 
     public override evaluate(interpreter: Interpreter): RuntimeValue {
-        const left = interpreter.evaluateExpr(this.left);
-        const right = interpreter.evaluateExpr(this.right);
+        const left = this.left.evaluate(interpreter);
+        const right = this.right.evaluate(interpreter);
 
         if (left instanceof NumberValue && right instanceof NumberValue) {
             return (this.parsedValue = BinaryNumberNumberInterpreter.evaluate(interpreter, this, left, right));

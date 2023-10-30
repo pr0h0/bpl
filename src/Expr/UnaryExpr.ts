@@ -19,7 +19,7 @@ export class UnaryExpr extends Expr {
     public override isEvaluateImplemented: boolean = true;
 
     public override evaluate(interpreter: Interpreter): RuntimeValue {
-        const right = interpreter.evaluateExpr(this.right);
+        const right = this.right.evaluate(interpreter);
         switch (this.operator.type) {
             case TokenType.INCREMENT_TOKEN: {
                 if (right.type !== ValueType.NUMBER) {

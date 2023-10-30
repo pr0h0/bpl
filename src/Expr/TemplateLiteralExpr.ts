@@ -14,7 +14,7 @@ export class TemplateLiteralExpr extends Expr {
 
     public override evaluate(interpreter: Interpreter): StringValue {
         const parts = this.value;
-        const parsed: StringValue[] = parts.map((part) => interpreter.evaluateExpr(part) as StringValue);
+        const parsed: StringValue[] = parts.map((part) => part.evaluate(interpreter) as StringValue);
         let result = '';
         for (const segment of parsed) {
             const value = segment.value;

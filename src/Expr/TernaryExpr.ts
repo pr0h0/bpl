@@ -16,11 +16,11 @@ export class TernaryExpr extends Expr {
     public override isEvaluateImplemented: boolean = true;
 
     public override evaluate(interpreter: Interpreter): RuntimeValue {
-        const condition = interpreter.evaluateExpr(this.condition) as BooleanValue;
+        const condition = this.condition.evaluate(interpreter) as BooleanValue;
         if (condition.type !== ValueType.BOOL) {
             throw new InterpreterError(`Invalid ternary condition type: ${condition.type}`, this);
         }
-        return (this.parsedValue = interpreter.evaluateExpr(condition.value ? this.thenBranch : this.elseBranch));
+        return (this.parsedValue = (condition.value ? this.thenBranch : this.elseBranch).evaluate(interpreter));
     }
 
     public override toString(): string {

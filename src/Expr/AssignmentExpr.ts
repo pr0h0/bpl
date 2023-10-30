@@ -2,8 +2,6 @@ import InterpreterError from '../Errors/InterpreterError';
 import Interpreter from '../Interpreter/Interpreter';
 import { ArrayValue, NumberValue, ObjectValue, RuntimeValue, TupleValue, VoidValue } from '../Interpreter/Values';
 import ValueType from '../Interpreter/ValueType';
-import Token from '../Lexer/Token';
-import TokenType from '../Lexer/TokenType';
 import ExprType from '../Parser/ExprType';
 import PrintService from '../services/print.service';
 import { ArrayAccessExpr } from './ArrayAccessExpr';
@@ -22,7 +20,7 @@ export class AssignmentExpr extends Expr {
     public override isEvaluateImplemented: boolean = true;
 
     public override evaluate(interpreter: Interpreter): RuntimeValue {
-        const value = interpreter.evaluateExpr(this.value);
+        const value = this.value.evaluate(interpreter);
 
         if (this.target instanceof IdentifierExpr) {
             const variable = interpreter.environment.getVariable(this.target.value);
@@ -35,13 +33,7 @@ export class AssignmentExpr extends Expr {
                 requiredType = type.value;
             }
 
-            VariableDeclarationExpr.verifyType(
-                interpreter,
-                value,
-                requiredType,
-                new Token(TokenType.IDENTIFIER_TOKEN, variable[1]),
-                this,
-            );
+            VariableDeclarationExpr.verifyType(interpreter, value, requiredType, variable[1], this);
 
             interpreter.environment.setVariable(this.target.value, value);
             return (this.parsedValue = value);
@@ -53,7 +45,7 @@ export class AssignmentExpr extends Expr {
                 string,
                 boolean,
             ];
-            const index = interpreter.evaluateExpr(this.target.index);
+            const index = this.target.index.evaluate(interpreter);
 
             if (!(array[0] instanceof ArrayValue) && !(array[0] instanceof TupleValue)) {
                 throw new InterpreterError('Invalid assignment target', this);
@@ -71,20 +63,14 @@ export class AssignmentExpr extends Expr {
                 requiredType = type.valueDefinition.$type;
             }
             array[0] instanceof ArrayValue ? array[0].value[0].type : array[0].typeOf[(index as NumberValue).value],
-                VariableDeclarationExpr.verifyType(
-                    interpreter,
-                    value,
-                    requiredType,
-                    new Token(TokenType.IDENTIFIER_TOKEN, value.type),
-                    this,
-                );
+                VariableDeclarationExpr.verifyType(interpreter, value, requiredType, value.type, this);
 
             array[0].value[index.value] = value;
             return (this.parsedValue = value);
         }
 
         if (this.target instanceof ObjectAccessExpr) {
-            const object = interpreter.evaluateExpr(this.target.object) as ObjectValue;
+            const object = this.target.object.evaluate(interpreter) as ObjectValue;
             const property = this.target.name.value;
 
             if (object.type !== ValueType.OBJECT) {
@@ -95,13 +81,7 @@ export class AssignmentExpr extends Expr {
                 throw new InterpreterError('Invalid assignment target', this);
             }
 
-            VariableDeclarationExpr.verifyType(
-                interpreter,
-                value,
-                object.value.get(property)!.type,
-                new Token(TokenType.IDENTIFIER_TOKEN, value.type),
-                this,
-            );
+            VariableDeclarationExpr.verifyType(interpreter, value, object.value.get(property)!.type, value.type, this);
 
             object.value.set(property, value);
             return (this.parsedValue = value);

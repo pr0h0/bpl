@@ -23,7 +23,7 @@ export class DoWhileUntilStmt extends Expr {
     public override evaluate(interpreter: Interpreter): RuntimeValue {
         const localInterpreter = new Interpreter(new Environment(interpreter.environment));
         let failsafe =
-            Number(this.failsafe && (localInterpreter.evaluateExpr(this.failsafe) as NumberValue)?.value) || undefined;
+            Number(this.failsafe && (this.failsafe.evaluate(localInterpreter) as NumberValue)?.value) || undefined;
 
         if (this.type === ExprType.DO_WHILE_STMT) {
             do {
@@ -38,7 +38,7 @@ export class DoWhileUntilStmt extends Expr {
                     }
                     throw err;
                 }
-            } while ((localInterpreter.evaluateExpr(this.condition) as BooleanValue).value === true);
+            } while ((this.condition.evaluate(localInterpreter) as BooleanValue).value === true);
         } else if (this.type === ExprType.DO_UNTIL_STMT) {
             do {
                 try {
@@ -52,7 +52,7 @@ export class DoWhileUntilStmt extends Expr {
                     }
                     throw err;
                 }
-            } while ((localInterpreter.evaluateExpr(this.condition) as BooleanValue).value === false);
+            } while ((this.condition.evaluate(localInterpreter) as BooleanValue).value === false);
         }
         return this.parsedValue;
     }

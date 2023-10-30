@@ -29,7 +29,6 @@ class STLService {
                     return new VoidValue();
                 },
                 ValueType.VOID,
-                true,
             ),
         );
 
@@ -44,7 +43,6 @@ class STLService {
                     return new StringValue(userInput);
                 },
                 ValueType.STRING,
-                true,
             ),
         );
 
@@ -55,7 +53,6 @@ class STLService {
                 [],
                 () => new NumberValue(Date.now()),
                 ValueType.NUMBER,
-                true,
             ),
         );
 
@@ -79,7 +76,6 @@ class STLService {
                     return new NullValue();
                 },
                 ValueType.ANY,
-                true,
             ),
         );
 

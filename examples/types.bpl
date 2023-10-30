@@ -1,4 +1,4 @@
-type ADDRESS = {
+type ADDRESS  {
   street: STRING,
   city: STRING,
   state: STRING,
@@ -7,7 +7,7 @@ type ADDRESS = {
 print(typeof(ADDRESS))
 print(ADDRESS)
 
-type USER = {
+type USER {
   name: STRING,
   age: NUMBER,
   address: ADDRESS,

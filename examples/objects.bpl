@@ -1,4 +1,4 @@
-type ADDRESS = {
+type ADDRESS {
   street: STRING,
   city: STRING,
   state: STRING,
@@ -6,14 +6,6 @@ type ADDRESS = {
 }
 print(typeof(ADDRESS))
 print(ADDRESS)
-
-type USER = {
-  name: STRING,
-  age: NUMBER,
-  address: ADDRESS,
-}
-print(typeof(USER))
-print(USER)
 
 var address: ADDRESS = {
   street: "123 Main St",
@@ -23,6 +15,22 @@ var address: ADDRESS = {
 }
 print(typeof(address))
 print(address)
+
+func printAddress(address: ADDRESS) {
+  print(`Street: ${address.street}`);
+  print(`City: ${address.city}`)
+  print(`State: ${address.state}`)
+  print(`Zip: ${address.zip}`)
+}
+printAddress(address)
+
+type USER {
+  name: STRING,
+  age: NUMBER,
+  address: ADDRESS,
+}
+print(typeof(USER))
+print(USER)
 
 var user: USER = {
   name: "John Doe",
@@ -36,3 +44,10 @@ print(user)
 print(`Name: ${user.name}`);
 print(`Age: ${user.age}`)
 print(user.address)
+
+func printUser(user: USER) {
+  print(`Name: ${user.name}`);
+  print(`Age: ${user.age}`)
+  print(user.address)
+}
+printUser(user)

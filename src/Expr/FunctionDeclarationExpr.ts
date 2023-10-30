@@ -1,12 +1,12 @@
 import InterpreterError from '../Errors/InterpreterError';
 import Interpreter from '../Interpreter/Interpreter';
-import ValueType from '../Interpreter/ValueType';
 import { FunctionValue, RuntimeValue, VoidValue } from '../Interpreter/Values';
+import ValueType from '../Interpreter/ValueType';
 import Token from '../Lexer/Token';
-import PrintService from '../services/print.service';
 import ExprType from '../Parser/ExprType';
-import { Expr } from './Expr';
+import PrintService from '../services/print.service';
 import { BlockStmt } from './BlockStmt';
+import { Expr } from './Expr';
 
 export class FunctionDeclarationExpr extends Expr {
     constructor(
@@ -43,7 +43,6 @@ export class FunctionDeclarationExpr extends Expr {
             this.params,
             this.body,
             this.returnType.value,
-            false,
             interpreter.environment,
         );
 

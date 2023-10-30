@@ -1,6 +1,6 @@
 import InterpreterError from '../Errors/InterpreterError';
 import Interpreter from '../Interpreter/Interpreter';
-import { ArrayValue, NullValue, ObjectValue, RuntimeValue, TupleValue, VoidValue } from '../Interpreter/Values';
+import { ArrayValue, ObjectValue, RuntimeValue, TupleValue, VoidValue } from '../Interpreter/Values';
 import ValueType from '../Interpreter/ValueType';
 import Token from '../Lexer/Token';
 import ExprType from '../Parser/ExprType';
@@ -8,7 +8,7 @@ import PrintService from '../services/print.service';
 import { Expr } from './Expr';
 
 export class VariableDeclarationExpr extends Expr {
-    constructor(public name: Token, public typeOf: Token, public value: Expr | null, public isConst: boolean = false) {
+    constructor(public name: Token, public typeOf: Token, public value: Expr, public isConst: boolean = false) {
         super(ExprType.VARIABLE_DECLARATION_EXPR);
     }
 
@@ -24,9 +24,9 @@ export class VariableDeclarationExpr extends Expr {
         ) {
             throw new InterpreterError(`Invalid variable type: ${this.typeOf.value}`, this);
         }
-        const value = this.value ? interpreter.evaluateExpr(this.value) : new NullValue();
+        const value = this.value.evaluate(interpreter);
         const type = this.typeOf.value;
-        VariableDeclarationExpr.verifyType(interpreter, value, type, this.typeOf, this);
+        VariableDeclarationExpr.verifyType(interpreter, value, type, this.typeOf.value, this);
 
         interpreter.environment.defineVariable(this.name.value, value, this.isConst);
         return (this.parsedValue = value);
@@ -36,11 +36,11 @@ export class VariableDeclarationExpr extends Expr {
         return PrintService.print(this.parsedValue);
     }
 
-    public static verifyType(interpreter: Interpreter, value: RuntimeValue, type: string, typeOf: Token, expr: Expr) {
+    public static verifyType(interpreter: Interpreter, value: RuntimeValue, type: string, typeOf: string, expr: Expr) {
         if (!interpreter.environment.isDefinedType(type))
             throw new InterpreterError(`Type ${type} is not defined!`, expr);
         if (value instanceof ObjectValue) {
-            ObjectValue.verifyObject(interpreter, value, typeOf.value);
+            ObjectValue.verifyObject(interpreter, value, typeOf);
             value.typeOf = type;
             return;
         }

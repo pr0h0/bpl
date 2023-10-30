@@ -19,7 +19,7 @@ export class ObjectLiteralExpr extends Expr {
         const object: Map<string, RuntimeValue> = new Map<string, RuntimeValue>();
         this.value.forEach((pair) => {
             const [key, value] = pair;
-            object.set(key.value, interpreter.evaluateExpr(value));
+            object.set(key.value, value.evaluate(interpreter));
         });
         return (this.parsedValue = new ObjectValue(object, ValueType.OBJECT));
     }

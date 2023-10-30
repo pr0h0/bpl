@@ -4,7 +4,6 @@ import ContinueStatement from '../Errors/ContinueStatement';
 import InterpreterError from '../Errors/InterpreterError';
 import ReturnStatement from '../Errors/ReturnStatement';
 import Interpreter from '../Interpreter/Interpreter';
-import ValueType from '../Interpreter/ValueType';
 import {
     FunctionValue,
     NativeFunctionValue,
@@ -13,10 +12,12 @@ import {
     TypeValue,
     VoidValue,
 } from '../Interpreter/Values';
+import ValueType from '../Interpreter/ValueType';
 import Token from '../Lexer/Token';
-import PrintService from '../services/print.service';
 import ExprType from '../Parser/ExprType';
+import PrintService from '../services/print.service';
 import { Expr } from './Expr';
+import { VariableDeclarationExpr } from './VariableDeclarationExpr';
 
 export class FunctionCallExpr extends Expr {
     constructor(public callee: Token, public args: Expr[]) {
@@ -29,8 +30,12 @@ export class FunctionCallExpr extends Expr {
 
     public override evaluate(interpreter: Interpreter): RuntimeValue {
         const func = interpreter.environment.getFunction(this.callee.value) as FunctionValue | NativeFunctionValue;
-        const env = new Environment(func.closure || interpreter.environment);
-        const localInterpreter = new Interpreter(env);
+        const closureEnv = new Environment(func.closure || new Environment());
+        const scopeEnv = new Environment(interpreter.environment);
+
+        const callingScopeInterpretter = new Interpreter(scopeEnv);
+        const functionDefinitionInterpreter = new Interpreter(closureEnv);
+
         const returnType = func.typeOf as ValueType;
 
         try {
@@ -41,47 +46,20 @@ export class FunctionCallExpr extends Expr {
                 );
             }
 
-            this.args.forEach((arg, index) => {
-                const value = interpreter.evaluateExpr(arg);
-                if (
-                    (func.isNative &&
-                        func.params[index][1] !== ValueType.ANY &&
-                        func.params[index][1] !== value.type) ||
-                    (!func.isNative &&
-                        (func.params[index][1] !== value.type ||
-                            (func.params[index][1] !== ValueType.OBJECT && func.params[index][1] !== value.type) ||
-                            (func.params[index][1] === ValueType.OBJECT &&
-                                (value as ObjectValue).typeOf !== func.params[index][1] &&
-                                ObjectValue.verifyObject(interpreter, value as ObjectValue, func.params[index][1]) !==
-                                    undefined)))
-                ) {
-                    throw new InterpreterError(
-                        `Invalid argument type: ${value.type} expected ${func.params[index][1]}`,
-                        arg,
-                    );
-                }
-                if (value.type === ValueType.FUNC) {
-                    env.defineFunction(func.params[index][0].value, value as FunctionValue);
-                } else if (value.type === ValueType.NATIVE_FUNCTION) {
-                    env.defineNativeFunction(func.params[index][0].value, value as NativeFunctionValue);
-                } else if (value.type === ValueType.TYPE) {
-                    env.defineType(
-                        func.params[index][0].value,
-                        (value as TypeValue).value,
-                        (value as TypeValue).valueDefinition,
-                    );
-                } else {
-                    env.defineVariable(func.params[index][0].value, value, false);
-                }
-            });
+            FunctionCallExpr.verifyFunctionCall(
+                callingScopeInterpretter,
+                functionDefinitionInterpreter,
+                func,
+                this.args,
+            );
 
-            if (func.isNative) {
+            if (func instanceof NativeFunctionValue) {
                 return (this.parsedValue = (func as NativeFunctionValue).body(
-                    this.args.map((arg) => interpreter.evaluateExpr(arg)),
+                    this.args.map((arg) => arg.evaluate(callingScopeInterpretter)),
                 ));
             }
 
-            localInterpreter.evaluate((func as FunctionValue).body);
+            (func as FunctionValue).body.evaluate(functionDefinitionInterpreter);
         } catch (err) {
             if (err instanceof ReturnStatement) {
                 if (returnType === ValueType.VOID)
@@ -90,7 +68,8 @@ export class FunctionCallExpr extends Expr {
                     (err.value.type !== ValueType.OBJECT && returnType !== err.value.type) ||
                     (err.value.type === ValueType.OBJECT &&
                         (err.value as ObjectValue).typeOf !== returnType &&
-                        ObjectValue.verifyObject(interpreter, err.value as ObjectValue, returnType) !== undefined)
+                        ObjectValue.verifyObject(callingScopeInterpretter, err.value as ObjectValue, returnType) !==
+                            undefined)
                 )
                     throw new InterpreterError(
                         `Invalid return type: ${err.value.type}, but expected ${returnType}`,
@@ -109,5 +88,51 @@ export class FunctionCallExpr extends Expr {
 
     public override toString(): string {
         return PrintService.print(this.parsedValue);
+    }
+
+    public static verifyFunctionCall(
+        callScopeInterpreter: Interpreter,
+        funcitonDefinitionInterpreter: Interpreter,
+        func: FunctionValue | NativeFunctionValue,
+        args: Expr[],
+    ): void {
+        args.forEach((arg, index) => {
+            const value = arg.evaluate(callScopeInterpreter);
+            const type =
+                func.params[index][1] === ValueType.ANY
+                    ? new TypeValue(ValueType.ANY, ValueType.ANY, {})
+                    : callScopeInterpreter.environment.getType(func.params[index][1]);
+
+            if (func instanceof NativeFunctionValue) {
+                if (func.params[index][1] !== ValueType.ANY) {
+                    VariableDeclarationExpr.verifyType(callScopeInterpreter, value, type.typeOf, value.type, arg);
+                }
+                return;
+            }
+
+            if (func instanceof FunctionValue) {
+                VariableDeclarationExpr.verifyType(callScopeInterpreter, value, type.typeOf, value.typeOf, arg);
+            }
+
+            if (value.type === ValueType.FUNC) {
+                funcitonDefinitionInterpreter.environment.defineFunction(
+                    func.params[index][0].value,
+                    value as FunctionValue,
+                );
+            } else if (value.type === ValueType.NATIVE_FUNCTION) {
+                funcitonDefinitionInterpreter.environment.defineNativeFunction(
+                    func.params[index][0].value,
+                    value as NativeFunctionValue,
+                );
+            } else if (value.type === ValueType.TYPE) {
+                funcitonDefinitionInterpreter.environment.defineType(
+                    func.params[index][0].value,
+                    (value as TypeValue).value,
+                    (value as TypeValue).valueDefinition,
+                );
+            } else {
+                funcitonDefinitionInterpreter.environment.defineVariable(func.params[index][0].value, value, false);
+            }
+        });
     }
 }

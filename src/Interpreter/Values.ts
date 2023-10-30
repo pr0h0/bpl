@@ -1,9 +1,9 @@
 import Environment from '../Environment/Environment';
-import Token from '../Lexer/Token';
-import { BlockStmt } from '../Expr/BlockStmt';
-import ValueType from './ValueType';
 import InterpreterError from '../Errors/InterpreterError';
+import { BlockStmt } from '../Expr/BlockStmt';
+import Token from '../Lexer/Token';
 import Interpreter from './Interpreter';
+import ValueType from './ValueType';
 
 export class RuntimeValue {
     constructor(public type: string) {}
@@ -56,7 +56,6 @@ export class FunctionValue extends RuntimeValue {
         public params: [Token, string][],
         public body: BlockStmt,
         public typeOf: string,
-        public isNative: boolean = false,
         public closure: Environment | null = null,
     ) {
         super(ValueType.FUNC);
@@ -69,7 +68,6 @@ export class NativeFunctionValue extends RuntimeValue {
         public params: [Token, string][],
         public body: (args: RuntimeValue[]) => RuntimeValue,
         public typeOf: string,
-        public isNative: boolean = true,
         public closure: Environment | null = null,
     ) {
         super(ValueType.NATIVE_FUNCTION);
@@ -150,8 +148,8 @@ export class ObjectValue extends RuntimeValue {
         const typeValue = interpreter.environment.getType(type);
         const typeDefinition = typeValue.valueDefinition;
         const objectDefinition = object.value;
-        const objectKeys = Array.from(objectDefinition.keys());
-        const typeKeys = Object.keys(typeDefinition);
+        const objectKeys = Array.from(objectDefinition.keys() || []);
+        const typeKeys = Object.keys(typeDefinition || {});
         const missingKeys = typeKeys.filter((key) => !objectKeys.includes(key));
         const extraKeys = objectKeys.filter((key) => !typeKeys.includes(key));
         if (missingKeys.length > 0) {

@@ -16,7 +16,7 @@ export class ObjectAccessExpr extends Expr {
     public override isEvaluateImplemented: boolean = true;
 
     public override evaluate(interpreter: Interpreter): RuntimeValue {
-        const object = interpreter.evaluateExpr(this.object) as ObjectValue;
+        const object = this.object.evaluate(interpreter) as ObjectValue;
         const property = this.name.value;
         if (!object.value.has(property)) {
             throw new InterpreterError(`Invalid property access: ${property}`, this);

@@ -26,21 +26,19 @@ export class ForStmt extends Expr {
     public override evaluate(interpreter: Interpreter): RuntimeValue {
         const localInterpreter = new Interpreter(new Environment(interpreter.environment));
         let failsafe =
-            Number(this.failsafe && (localInterpreter.evaluateExpr(this.failsafe) as NumberValue)?.value) || undefined;
+            Number(this.failsafe && (this.failsafe.evaluate(localInterpreter) as NumberValue)?.value) || undefined;
 
         if (this.initializer) {
-            localInterpreter.evaluateExpr(this.initializer);
+            this.initializer.evaluate(localInterpreter);
         }
 
         while (true) {
             if (this.condition) {
-                const condition = localInterpreter.evaluateExpr(this.condition) as BooleanValue;
-                if (condition.value !== true) {
-                    break;
-                }
+                const condition = this.condition.evaluate(localInterpreter) as BooleanValue;
+                if (condition.value !== true) break;
             }
             try {
-                localInterpreter.evaluateExpr(this.body);
+                this.body.evaluate(localInterpreter);
                 if (failsafe !== undefined && failsafe-- < 0) throw new BreakStatement('Failsafe limit reached');
             } catch (err) {
                 if (err instanceof BreakStatement) {
@@ -52,7 +50,7 @@ export class ForStmt extends Expr {
                 }
             }
             if (this.increment) {
-                localInterpreter.evaluateExpr(this.increment);
+                this.increment.evaluate(localInterpreter);
             }
         }
         return this.parsedValue;

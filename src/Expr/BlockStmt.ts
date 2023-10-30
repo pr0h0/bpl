@@ -17,7 +17,7 @@ export class BlockStmt extends Expr {
     public override evaluate(interpreter: Interpreter): RuntimeValue {
         const localInterpreter = new Interpreter(new Environment(interpreter.environment));
         for (const expr of this.statements) {
-            localInterpreter.evaluateExpr(expr);
+            expr.evaluate(localInterpreter);
         }
         return new VoidValue();
     }

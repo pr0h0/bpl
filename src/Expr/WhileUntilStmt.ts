@@ -24,12 +24,12 @@ export class WhileUntilStmt extends Expr {
     public override evaluate(interpreter: Interpreter): RuntimeValue {
         const localInterpreter = new Interpreter(new Environment(interpreter.environment));
         let failsafe =
-            Number(this.failsafe && (localInterpreter.evaluateExpr(this.failsafe) as NumberValue)?.value) || undefined;
+            Number(this.failsafe && (this.failsafe.evaluate(localInterpreter) as NumberValue)?.value) || undefined;
 
         if (this.type === ExprType.WHILE_STMT) {
-            while ((interpreter.evaluateExpr(this.condition) as BooleanValue).value === true) {
+            while ((this.condition.evaluate(interpreter) as BooleanValue).value === true) {
                 try {
-                    localInterpreter.evaluateExpr(this.body);
+                    this.body.evaluate(localInterpreter);
                     if (failsafe !== undefined && failsafe-- < 0) throw new BreakStatement(`Failsafe limit reached`);
                 } catch (err) {
                     if (err instanceof BreakStatement) {
@@ -41,9 +41,9 @@ export class WhileUntilStmt extends Expr {
                 }
             }
         } else if (this.type === ExprType.UNTIL_STMT) {
-            while ((interpreter.evaluateExpr(this.condition) as BooleanValue).value === false) {
+            while ((this.condition.evaluate(interpreter) as BooleanValue).value === false) {
                 try {
-                    localInterpreter.evaluateExpr(this.body);
+                    this.body.evaluate(localInterpreter);
                     if (failsafe !== undefined && failsafe-- < 0) throw new BreakStatement(`Failsafe limit reached`);
                 } catch (err) {
                     if (err instanceof BreakStatement) {
