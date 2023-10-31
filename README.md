@@ -38,8 +38,6 @@ var c: BOOL = true;
 var f: FUNC = print;
 ```
 
-Arrays, Tuples and Objects are not supported yet
-
 ### Types
 
 There are 4 primitive types in BPL:
@@ -55,17 +53,21 @@ Also there are complex types:
 
 -   `FUNC` - function type
 -   `NATIVE_FUNCTION` - special case if you plan to assign some of the native functions to variable
--   `ARRAY<T>` - array type, T is type of array
--   `TUPLE<T1, T2, ...>` - tuple type, T1, T2, ... are types of tuple
+-   `ARRAY` [T] - array type, T is type of array
+-   `TUPLE` (T1, T2, ...) - tuple type, T1, T2, ... are types of tuple
 -   `OBJECT` { key: TYPE, key2: TYPE2, ...} - object type with custom properties
 
 You can define custom types using `type` keyword
 
 ```
-    type USER = {
+    type USER {
         name: STRING,
         age: NUMBER
     }
+
+    type USER_ARRAY [USER]
+
+    type USER_TUPLE (NUMBER, USER)
 ```
 
 ### Functions
@@ -130,7 +132,7 @@ do {
 
 ### For loops
 
-To declare for loop you can use `for` keyword. After that put open parenthesis, initializator, it can be any expression but it can't be empty, semicolon, condition can be anything but it can't be skipped, semicolon, increment can be any expression but it needs to be present, close parenthesis and put for loop body in curly braces. For loops are declared like this:
+To declare for loop you can use `for` keyword. After that put open parenthesis, initializator, it can be any expression but also can be omited, semicolon, condition can be anything but also can be omited, semicolon, increment can be any expression but  also can be omited, close parenthesis and put for loop body in curly braces. For loops are declared like this:
 
 ```
 for (var i: NUMBER = 0; i < 10; i++) {
