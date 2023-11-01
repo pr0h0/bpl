@@ -212,6 +212,11 @@ All examples are in `examples` folder, there are fibonacci example, guess the nu
 
 To run examples just run `npm run start:file examples/<name of the example>`
 
+## Syntax highlighting
+
+Syntax highlighting is available for Visual Studio Code, you can enable it by running `npm run install:vscode` and then restart Visual Studio Code
+It's still incomplete and hopefully it will be improved in future, but currently have some basic syntax highlighting
+
 ## How to contribute?
 
 You can contribute by creating issues, pull requests or by creating new examples

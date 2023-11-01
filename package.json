@@ -8,7 +8,8 @@
         "start": "node dist/cli.js",
         "start:file": "node dist/file.js",
         "watch": "nodemon -w ./src -e ts -x \"npm run build && npm run start\"",
-        "watch:file": "nodemon -w ./src -e ts -x \"npm run build && npm run start:file\""
+        "watch:file": "nodemon -w ./src -e ts -x \"npm run build && npm run start:file\"",
+        "install:vscode": "./vscode-language-support/bpl/copy-extension.sh"
     },
     "keywords": [],
     "author": "",
