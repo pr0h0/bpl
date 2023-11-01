@@ -1,0 +1,25 @@
+{
+  "name": "bpl",
+  "displayName": "BPL",
+  "description": "BPL Programming Language",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.83.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "bpl",
+      "aliases": ["BPL", "bpl"],
+      "extensions": [".bpl"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "bpl",
+      "scopeName": "source.bpl",
+      "path": "./syntaxes/bpl.tmLanguage.json"
+    }]
+  }
+}
