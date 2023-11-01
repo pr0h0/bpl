@@ -2,7 +2,7 @@ type ARRAY [NUMBER];
 type TUPLE (NUMBER, STRING, NUMBER);
 type USER {name: STRING, age: NUMBER};
 
-var user: USER = {name: "John", age: 20};
+var user: USER = { name: "John", age: 20 };
 var tuple: TUPLE = (1, "2", 3);
 var arr: ARRAY = [1,2,3,4,5,6,7];
 

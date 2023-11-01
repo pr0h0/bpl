@@ -31,4 +31,3 @@ do {
     break;
   }
 } until(inputValue == number)
-
